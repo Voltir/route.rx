@@ -1,10 +1,7 @@
 package locallink
 
-import upickle._
-import org.scalajs.dom.raw.PopStateEvent
 import utest._
 import org.scalajs.dom
-import rx._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -54,10 +51,9 @@ object LocalLinkTest extends TestSuite {
 
   def tests = TestSuite {
     'test1 {
-      import internal._
       println("~~~~~~~ AWHAAAT AM I DOING??? ~~~~~~~~~")
       val thing = OtherRandomThing(10,"MY-RANDOM-THING-NAME")
-      val routes = Router.wurt[Screen](FooScreen)
+      val routes = Router.generate[Screen](FooScreen)
       def printCurrent() = {
         println("~~~~~~~~~~~~~~~~~~~~~~~~~")
         println(routes.current.now)
@@ -82,9 +78,7 @@ object LocalLinkTest extends TestSuite {
     }
 
     'test2 {
-      import internal._
-
-      val routes = Router.wurt[Screen](FooScreen)
+      val routes = Router.generate[Screen](FooScreen)
       println("~~~~~~~ DO THE OTHER THING! ~~~~~~~~~")
       val thing = OtherRandomThing(10,"MY-RANDOM-THING-NAME")
       routes.linkTo(MagicScreen(thing,FakeUser(1001,"That Dude")))
@@ -93,12 +87,22 @@ object LocalLinkTest extends TestSuite {
       println("WAAAT")
       println(routes.current.now)
       println(dom.window.location.href)
-      routes.otherwurt("/foo").map(println)
-      routes.otherwurt("/bar").map(println)
-      routes.otherwurt("/baz").map(println)
-      routes.otherwurt("/profile/99").map(println)
-      routes.otherwurt("/friend/99").map(println)
-      routes.otherwurt("/magic/10/MY-RANDOM-THING-NAME/AND-AlSO-WHO/1001").map(println)
+      routes.parseUrl("/foo").map(println)
+      routes.parseUrl("/bar").map(println)
+      routes.parseUrl("/baz").map(println)
+      routes.parseUrl("/profile/99").map(println)
+      routes.parseUrl("/friend/99").map(println)
+      routes.parseUrl("/magic/10/MY-RANDOM-THING-NAME/AND-AlSO-WHO/1001").map(println)
+    }
+
+    'prefixTest {
+      sealed trait AdminScreen
+      case object Foo2Screen extends AdminScreen
+      case object Bar2Screen extends AdminScreen
+      val routes: Router[AdminScreen] = Router.generate[AdminScreen](Foo2Screen)
+      println(dom.window.location.href)
+      println(dom.window.location.href)
+      println(dom.window.location.href)
     }
   }
 }

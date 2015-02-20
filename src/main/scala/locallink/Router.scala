@@ -5,12 +5,13 @@ import upickle._
 import org.scalajs.dom
 import org.scalajs.dom.raw.PopStateEvent
 import rx._
-import locallink.internal.RouteTable
+
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.experimental.macros
+import internal._
 
 class Router[Link](default: Link, table: RouteTable[Link])(implicit R: upickle.Reader[Link], w: upickle.Writer[Link]) {
-  lazy val current: Var[Link] = {
+  val current: Var[Link] = {
     val url = table.urlFor(default)
     dom.window.history.pushState(upickle.write(default),null,url)
     Var(default)
@@ -22,8 +23,8 @@ class Router[Link](default: Link, table: RouteTable[Link])(implicit R: upickle.R
     current() = link
   }
 
-  def otherwurt(inp: String)(implicit ec: ExecutionContext): Future[Link] = {
-    table.linkGiven(inp,default)
+  def parseUrl(url: String)(implicit ec: ExecutionContext): Future[Link] = {
+    table.linkGiven(url,default)
   }
 
   dom.window.onpopstate = { (evt: PopStateEvent) =>
@@ -39,6 +40,6 @@ class Router[Link](default: Link, table: RouteTable[Link])(implicit R: upickle.R
 }
 
 object Router {
-  import internal._
-  def wurt[Link](default: Link)(implicit R: upickle.Reader[Link], w: upickle.Writer[Link]): Router[Link] = macro locallink.internal.Macros.generateRouter[Link]
+  import locallink.internal._
+  def generate[Link](default: Link)(implicit R: upickle.Reader[Link], w: upickle.Writer[Link]): Router[Link] = macro locallink.internal.Macros.generateRouter[Link]
 }

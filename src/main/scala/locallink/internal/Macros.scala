@@ -1,6 +1,6 @@
 package locallink.internal
 
-import locallink.Router
+import locallink.{RouteTable, Router}
 
 import scala.language.experimental.macros
 import scala.reflect.macros._
@@ -14,19 +14,19 @@ object Macros {
     c.universe.internal.gen.mkAttributedRef(pre, tpe.typeSymbol.companion)
   }
 
-  def prefix(fullName: String): String = {
+  def prefix(rootPart: String, fullName: String): String = {
     val name = fullName.toLowerCase
     val hackIdx = name.lastIndexOf('.')
     val whatever = name.drop(hackIdx+1)
-    "/"+whatever.take(whatever.length - "Screen".size).toLowerCase
+    rootPart+whatever.take(whatever.length - "Screen".size).toLowerCase
   }
 
-  private def urlForCaseObject(c: blackbox.Context)(sym: c.universe.Symbol): c.Tree = {
+  private def urlForCaseObject(c: blackbox.Context)(rootPart: String, sym: c.universe.Symbol): c.Tree = {
     import c.universe._
-    cq"e: ${sym.asType} => ${prefix(sym.fullName)}"
+    cq"e: ${sym.asType} => ${prefix(rootPart, sym.fullName)}"
   }
 
-  private def urlForCaseClass(c: blackbox.Context)(sym: c.universe.Symbol): c.Tree = {
+  private def urlForCaseClass(c: blackbox.Context)(rootPart: String, sym: c.universe.Symbol): c.Tree = {
     import c.universe._
     val term = TermName("e")
     val toParts = sym.asType.info.decls.filter(_.asTerm.isAccessor).map { acc =>
@@ -34,7 +34,7 @@ object Macros {
     }
     cq"""$term: ${sym.asType} => {
       val allParts = List(..$toParts).flatten
-      ${prefix (sym.fullName)} + "/" + allParts.mkString("/")
+      ${prefix(rootPart, sym.fullName)} + "/" + allParts.mkString("/")
     }"""
 
   }
@@ -48,6 +48,16 @@ object Macros {
       c.abort(c.enclosingPosition, "Routes may only use a sealed trait")
     }
 
+    println(linkTpe.typeSymbol.asClass.fullName.split('.').toList)
+    val rootSymbolName = linkTpe.typeSymbol.asClass.fullName.split('.').toList.lastOption.getOrElse("Screen")
+    if(!rootSymbolName.endsWith("Screen")) {
+      c.abort(c.enclosingPosition,"Base route must end in 'Screen'")
+    }
+
+    val rootPart =
+      if(rootSymbolName == "Screen") "/"
+      else "/" + rootSymbolName.take(rootSymbolName.length - "Screen".length).toLowerCase + "/"
+
     val clsSymbol = linkTpe.typeSymbol.asClass
 
     if(clsSymbol.knownDirectSubclasses.isEmpty) {
@@ -57,8 +67,8 @@ object Macros {
     val linkToUrl = clsSymbol.knownDirectSubclasses.map { sym =>
       val isCaseObject = sym.asClass.isCaseClass && sym.asClass.isModuleClass
       val isCaseClass = sym.asClass.isCaseClass && !sym.asClass.isModuleClass
-      if (isCaseObject) urlForCaseObject(c)(sym)
-      else if (isCaseClass) urlForCaseClass(c)(sym)
+      if (isCaseObject) urlForCaseObject(c)(rootPart,sym)
+      else if (isCaseClass) urlForCaseClass(c)(rootPart,sym)
       else {
         c.abort(c.enclosingPosition,"Unknown Subclass Type!")
       }
@@ -66,16 +76,20 @@ object Macros {
 
     val urlToLink = clsSymbol.knownDirectSubclasses.map { sym =>
 
+      if(!sym.fullName.endsWith("Screen")) {
+        c.abort(c.enclosingPosition,"All link types must end in Screen")
+      }
+
       val isCaseObject = sym.asClass.isCaseClass && sym.asClass.isModuleClass
 
       val isCaseClass = sym.asClass.isCaseClass && !sym.asClass.isModuleClass
 
       if(isCaseObject) {
-        val url = prefix(sym.fullName)
+        val url = prefix(rootPart, sym.fullName)
         val basicCaseObject = q"{ case ((_:String),(ec:ExecutionContext)) => Future(${sym.asClass.module})(ec)}"
         q"$url -> $basicCaseObject"
       } else {
-        val url = prefix(sym.fullName)
+        val url = prefix(rootPart, sym.fullName)
 
         val companion = getCompanion(c)(sym.asType.toType)
 

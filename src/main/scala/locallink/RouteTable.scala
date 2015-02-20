@@ -1,4 +1,4 @@
-package locallink.internal
+package locallink
 
 import scala.concurrent.{ExecutionContext, Future}
 
