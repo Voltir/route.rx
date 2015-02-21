@@ -30,7 +30,7 @@ object Macros {
     import c.universe._
     val term = TermName("e")
     val toParts = sym.asType.info.decls.filter(_.asTerm.isAccessor).map { acc =>
-      q"implicitly[UrlPartial[${acc.asTerm}]].toParts($term.$acc)"
+      q"implicitly[UrlPart[${acc.asTerm}]].toParts($term.$acc)"
     }
     cq"""$term: ${sym.asType} => {
       val allParts = List(..$toParts).flatten
@@ -99,11 +99,11 @@ object Macros {
 
         val elemPartials = accessors.zipWithIndex.map { case (acc,idx) =>
           val accTerm = TermName(s"acc$idx")
-          val thing = q"implicitly[UrlPartial[${acc.asTerm}]]"
+          val thing = q"implicitly[UrlPart[${acc.asTerm}]]"
           fq"""$accTerm <- {
               val partial = $thing
-              val r = partial.fromParts($unusedParts.take(partial.numParts))
-              $unusedParts = $unusedParts.drop(partial.numParts)
+              val r = partial.fromParts($unusedParts.take(partial.size))
+              $unusedParts = $unusedParts.drop(partial.size)
               r
           }"""
         }

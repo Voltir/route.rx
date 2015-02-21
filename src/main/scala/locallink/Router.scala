@@ -29,7 +29,12 @@ class Router[Link](default: Link, table: RouteTable[Link])(implicit R: upickle.R
 
   dom.window.onpopstate = { (evt: PopStateEvent) =>
     if(evt.state != null) {
+      println(s"BEFORE? ${current.now}")
       val link = upickle.read[Link](evt.state.asInstanceOf[String])
+      println("Wurt?")
+      println(link)
+      println(link)
+      println(link)
       current() = link
     }
     else {

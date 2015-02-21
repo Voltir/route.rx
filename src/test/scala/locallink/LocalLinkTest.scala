@@ -7,7 +7,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 
 object LocalLinkTest extends TestSuite {
-  import scalajs.concurrent.JSExecutionContext.Implicits.queue
+  //import scalajs.concurrent.JSExecutionContext.Implicits.runNow
+  import utest.ExecutionContext.RunNow
 
   case class FakeUser(id: Int, name: String)
 
@@ -19,90 +20,72 @@ object LocalLinkTest extends TestSuite {
   case object BazScreen extends Screen
   case class ProfileScreen(user: FakeUser) extends Screen
   case class FriendScreen(user: FakeUser) extends Screen
-  case class MagicScreen(thing: OtherRandomThing, user: FakeUser) extends Screen
+  case class MultiScreen(thing: OtherRandomThing, user: FakeUser) extends Screen
 
-  implicit val LolDeathToAndrew = new UrlPartial[FakeUser] {
+  implicit val FakeUserUrlParts = new UrlPart[FakeUser] {
+    override val size = 1
 
-    val numParts = 1
+    override def toParts(inp: FakeUser) = List(inp.id.toString)
 
-    def toParts(inp: FakeUser) = List(inp.id.toString)
-
-    def fromParts(parts: List[String])(implicit ec: ExecutionContext): Future[FakeUser] = {
-      parts match {
-        case id :: Nil => Future(FakeUser(id.toInt,"Should pull From Server"))
-        case _ => Future.failed(new Throwable("Invalid Shape for FakeUser partial url!"))
-      }
+    override def fromParts(parts: List[String])(implicit ec: ExecutionContext): Future[FakeUser] = parts match {
+      case id :: Nil => Future(FakeUser(id.toInt,"This would normally come from the server"))
+      case _ => Future.failed(new Throwable("Invalid size for FakeUser URL Parts!"))
     }
   }
 
-  implicit val LolDeathToAndrew2 = new UrlPartial[OtherRandomThing] {
+  implicit val OtherRandomUrlParts = new UrlPart[OtherRandomThing] {
+    val size = 3
 
-    val numParts = 3
+    def toParts(inp: OtherRandomThing) = List(inp.foo.toString,inp.bar,"EXTRA-PART")
 
-    def toParts(inp: OtherRandomThing) = List(inp.foo.toString,inp.bar,"AND-AlSO-WHO")
-
-    def fromParts(parts: List[String])(implicit ec: ExecutionContext): Future[OtherRandomThing] = {
-      parts match {
-        case id :: bar :: _ :: Nil => Future(OtherRandomThing(id.toInt,bar))
-        case _ => Future.failed(new Throwable("Invalid Shape for FakeUser partial url!"))
-      }
+    def fromParts(parts: List[String])(implicit ec: ExecutionContext): Future[OtherRandomThing] =  parts match  {
+      case id :: bar :: _ :: Nil => Future(OtherRandomThing(id.toInt,bar))
+      case _ => Future.failed(new Throwable("Invalid Shape for FakeUser partial url!"))
     }
   }
 
   def tests = TestSuite {
-    'test1 {
-      println("~~~~~~~ AWHAAAT AM I DOING??? ~~~~~~~~~")
-      val thing = OtherRandomThing(10,"MY-RANDOM-THING-NAME")
-      val routes = Router.generate[Screen](FooScreen)
-      def printCurrent() = {
-        println("~~~~~~~~~~~~~~~~~~~~~~~~~")
-        println(routes.current.now)
-        println(dom.window.location.href)
-      }
-      printCurrent()
-      routes.linkTo(ProfileScreen(FakeUser(2,"Foo Sam")))
-      printCurrent()
+    val routes = Router.generate[Screen](FooScreen)
+
+    'defaultHref {
+      assert(routes.current.now == FooScreen)
+      assert(dom.window.location.pathname == "/foo")
+     }
+
+    'linkToBasics {
       routes.linkTo(BarScreen)
-      printCurrent()
-      routes.linkTo(ProfileScreen(FakeUser(42,"Biz Bob Sam")))
-      printCurrent()
-      routes.linkTo(FriendScreen(FakeUser(42,"Biz Bob Sam")))
-      printCurrent()
-      routes.linkTo(MagicScreen(thing,FakeUser(1001,"That Dude")))
-      printCurrent()
-      dom.window.history.back()
-      dom.setTimeout(() => {
-        println("GO BACK!")
-        printCurrent()
-      },10)
+      assert(routes.current.now == BarScreen)
+      assert(dom.window.location.pathname == "/bar")
     }
 
-    'test2 {
-      val routes = Router.generate[Screen](FooScreen)
-      println("~~~~~~~ DO THE OTHER THING! ~~~~~~~~~")
-      val thing = OtherRandomThing(10,"MY-RANDOM-THING-NAME")
-      routes.linkTo(MagicScreen(thing,FakeUser(1001,"That Dude")))
-      routes.linkTo(MagicScreen(thing,FakeUser(1001,"That Dude")))
-      routes.linkTo(MagicScreen(thing,FakeUser(1001,"That Dude")))
-      println("WAAAT")
-      println(routes.current.now)
-      println(dom.window.location.href)
-      routes.parseUrl("/foo").map(println)
-      routes.parseUrl("/bar").map(println)
-      routes.parseUrl("/baz").map(println)
-      routes.parseUrl("/profile/99").map(println)
-      routes.parseUrl("/friend/99").map(println)
-      routes.parseUrl("/magic/10/MY-RANDOM-THING-NAME/AND-AlSO-WHO/1001").map(println)
+    'linkWithUrlPart {
+      routes.linkTo(ProfileScreen(FakeUser(42,"Foo Sam")))
+      assert(dom.window.location.pathname == "/profile/42")
+    }
+
+    'linkWithMultipleParts {
+      val screen = MultiScreen(OtherRandomThing(100,"BAR-STRING"),FakeUser(99,"Another User"))
+      routes.linkTo(screen)
+      assert(dom.window.location.pathname == "/multi/100/BAR-STRING/EXTRA-PART/99")
+    }
+
+    'parseUrls {
+      * - routes.parseUrl("/foo").map { s => assertMatch(s){case FooScreen => }}
+      * - routes.parseUrl("/bar").map { s => assertMatch(s){case BarScreen => }}
+      * - routes.parseUrl("/baz").map { s => assertMatch(s){case BazScreen => }}
+      * - routes.parseUrl("/profile/99").map { s => assertMatch(s){ case ProfileScreen(FakeUser(99,_)) =>}}
+      * - routes.parseUrl("/friend/42").map { s => assertMatch(s){ case FriendScreen(FakeUser(42,_)) =>}}
+      * - routes.parseUrl("/multi/10/MY-RANDOM-BAR/AND-AlSO-WHO/1001").map {
+        s => assertMatch(s){case MultiScreen(OtherRandomThing(10,"MY-RANDOM-BAR"),FakeUser(1001,_)) =>}
+      }
     }
 
     'prefixTest {
       sealed trait AdminScreen
-      case object Foo2Screen extends AdminScreen
-      case object Bar2Screen extends AdminScreen
-      val routes: Router[AdminScreen] = Router.generate[AdminScreen](Foo2Screen)
-      println(dom.window.location.href)
-      println(dom.window.location.href)
-      println(dom.window.location.href)
+      case object TestScreen extends AdminScreen
+      val routes: Router[AdminScreen] = Router.generate[AdminScreen](TestScreen)
+      println(dom.window.location.pathname)
+      assert(dom.window.location.pathname == "/admin/test")
     }
   }
 }

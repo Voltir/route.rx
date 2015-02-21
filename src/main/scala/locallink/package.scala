@@ -1,14 +1,15 @@
 import scala.concurrent.{Future, ExecutionContext}
 
 package object locallink {
-  import scala.language.experimental.macros
-
-  //trait LocalLink[Target] {
-  //  def asUrl(t: Target): String //= macro Macros.magic[Target]
-  //}
-
-  trait UrlPartial[T] {
-    val numParts: Int
+  /**
+   * UrlPart defines how to take arbitrary screen parameters and represent them as part of the generated URL.
+   * The basic idea is that enough information will be stored in the url, such as an object id,
+   * that it is possible to reconstruct the object if required.
+   *
+   * - Size is required and must match the length taken from toParts and given to fromParts
+   */
+  trait UrlPart[T] {
+    val size: Int
     def toParts(inp: T): List[String]
     def fromParts(parts: List[String])(implicit ec: ExecutionContext): Future[T]
   }
