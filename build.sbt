@@ -27,3 +27,5 @@ persistLauncher in Test := false
 
 scalaJSStage in Global := FastOptStage
 requiresDOM := true
+
+publishTo := Some(Resolver.file("Github Pages", new File("/home/nick/publish/local-link")))
