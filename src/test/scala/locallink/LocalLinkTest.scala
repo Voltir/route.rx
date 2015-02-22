@@ -7,7 +7,6 @@ import scala.concurrent.{ExecutionContext, Future}
 
 
 object LocalLinkTest extends TestSuite {
-  //import scalajs.concurrent.JSExecutionContext.Implicits.runNow
   import utest.ExecutionContext.RunNow
 
   case class FakeUser(id: Int, name: String)
@@ -21,6 +20,7 @@ object LocalLinkTest extends TestSuite {
   case class ProfileScreen(user: FakeUser) extends Screen
   case class FriendScreen(user: FakeUser) extends Screen
   case class MultiScreen(thing: OtherRandomThing, user: FakeUser) extends Screen
+  case class TestVolatileScreen(user: FakeUser) extends Screen with VolatileLink
 
   implicit val FakeUserUrlParts = new UrlPart[FakeUser] {
     override val size = 1
@@ -53,19 +53,19 @@ object LocalLinkTest extends TestSuite {
      }
 
     'linkToBasics {
-      routes.linkTo(BarScreen)
+      routes.goto(BarScreen)
       assert(routes.current.now == BarScreen)
       assert(dom.window.location.pathname == "/bar")
     }
 
     'linkWithUrlPart {
-      routes.linkTo(ProfileScreen(FakeUser(42,"Foo Sam")))
+      routes.goto(ProfileScreen(FakeUser(42,"Foo Sam")))
       assert(dom.window.location.pathname == "/profile/42")
     }
 
     'linkWithMultipleParts {
       val screen = MultiScreen(OtherRandomThing(100,"BAR-STRING"),FakeUser(99,"Another User"))
-      routes.linkTo(screen)
+      routes.goto(screen)
       assert(dom.window.location.pathname == "/multi/100/BAR-STRING/EXTRA-PART/99")
     }
 

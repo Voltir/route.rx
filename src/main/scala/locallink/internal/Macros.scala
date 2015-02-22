@@ -1,6 +1,6 @@
 package locallink.internal
 
-import locallink.{RouteTable, Router}
+import locallink.{VolatileLink, RouteTable, Router}
 
 import scala.language.experimental.macros
 import scala.reflect.macros._
@@ -36,7 +36,6 @@ object Macros {
       val allParts = List(..$toParts).flatten
       ${prefix(rootPart, sym.fullName)} + "/" + allParts.mkString("/")
     }"""
-
   }
 
   def generateRouter[Link: c.WeakTypeTag](c: blackbox.Context)(default: c.Expr[Link])(R: c.Expr[upickle.Reader[Link]], w: c.Expr[upickle.Writer[Link]]): c.Expr[Router[Link]] = {
@@ -48,7 +47,6 @@ object Macros {
       c.abort(c.enclosingPosition, "Routes may only use a sealed trait")
     }
 
-    println(linkTpe.typeSymbol.asClass.fullName.split('.').toList)
     val rootSymbolName = linkTpe.typeSymbol.asClass.fullName.split('.').toList.lastOption.getOrElse("Screen")
     if(!rootSymbolName.endsWith("Screen")) {
       c.abort(c.enclosingPosition,"Base route must end in 'Screen'")
@@ -72,6 +70,14 @@ object Macros {
       else {
         c.abort(c.enclosingPosition,"Unknown Subclass Type!")
       }
+    }
+
+    val volatileLinkTpe = weakTypeTag[VolatileLink].tpe
+    val volatileLinks = clsSymbol.knownDirectSubclasses.flatMap { sym =>
+      if(sym.asClass.baseClasses.exists(_.asType.toType <:< volatileLinkTpe)) {
+        Option(cq"_: ${sym.asType} => true")
+      }
+      else None
     }
 
     val urlToLink = clsSymbol.knownDirectSubclasses.map { sym =>
@@ -119,11 +125,18 @@ object Macros {
       }
     }
 
+    //""""""
+
     val table = c.Expr[RouteTable[Link]](q"""
       new RouteTable[$linkTpe] {
+        private val unUrl: Map[String, (String,ExecutionContext) => Future[$linkTpe]] = Map(..$urlToLink)
+
         def urlFor(link: $linkTpe): String = link match { case ..$linkToUrl }
 
-        private val unUrl: Map[String, (String,ExecutionContext) => Future[$linkTpe]] = Map(..$urlToLink)
+        def isVolatileLink(link: $linkTpe): Boolean = link match {
+          case ..$volatileLinks
+          case _ => false
+        }
 
         def linkGiven(url: String, onError: $linkTpe)(implicit ec: ExecutionContext): Future[$linkTpe] = {
           unUrl.find(part => url.startsWith(part._1)).map { case (matched,builder) =>

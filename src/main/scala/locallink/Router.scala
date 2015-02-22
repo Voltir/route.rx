@@ -7,19 +7,33 @@ import org.scalajs.dom.raw.PopStateEvent
 import rx._
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.scalajs.js
+import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.language.experimental.macros
 import internal._
 
 class Router[Link](default: Link, table: RouteTable[Link])(implicit R: upickle.Reader[Link], w: upickle.Writer[Link]) {
+
+  private def updateBrowserHistory(stateFunc: (js.Any,String,String) => Unit)(link: Link) = {
+    if(table.isVolatileLink(link)) {
+      stateFunc(null, null, table.urlFor(link))
+    } else {
+      stateFunc(upickle.write(link), null, table.urlFor(link))
+    }
+  }
+
   val current: Var[Link] = {
-    val url = table.urlFor(default)
-    dom.window.history.pushState(upickle.write(default),null,url)
+    updateBrowserHistory(dom.window.history.pushState)(default)
     Var(default)
   }
 
-  def linkTo(link: Link): Unit = {
-    val url = table.urlFor(link)
-    dom.window.history.pushState(upickle.write(link),null,url)
+  def goto(link: Link): Unit = {
+    updateBrowserHistory(dom.window.history.pushState)(link)
+    current() = link
+  }
+
+  def switchTo(link: Link): Unit = {
+    updateBrowserHistory(dom.window.history.replaceState)(default)
     current() = link
   }
 
@@ -29,17 +43,13 @@ class Router[Link](default: Link, table: RouteTable[Link])(implicit R: upickle.R
 
   dom.window.onpopstate = { (evt: PopStateEvent) =>
     if(evt.state != null) {
-      println(s"BEFORE? ${current.now}")
       val link = upickle.read[Link](evt.state.asInstanceOf[String])
-      println("Wurt?")
-      println(link)
-      println(link)
-      println(link)
       current() = link
     }
     else {
-      println("TODO LINK STATE NULL!")
-      //assert(false,"Need to do something to build a Link without a valid state!")
+      parseUrl(dom.window.location.pathname).map { link =>
+        current() = link
+      }
     }
   }
 }

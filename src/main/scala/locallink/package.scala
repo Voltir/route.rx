@@ -13,4 +13,10 @@ package object locallink {
     def toParts(inp: T): List[String]
     def fromParts(parts: List[String])(implicit ec: ExecutionContext): Future[T]
   }
+
+  /**
+   * This trait is used to skip the state cache used in the browsers History API
+   * And will in effect force a reload during a popstate event
+   */
+  trait VolatileLink
 }
