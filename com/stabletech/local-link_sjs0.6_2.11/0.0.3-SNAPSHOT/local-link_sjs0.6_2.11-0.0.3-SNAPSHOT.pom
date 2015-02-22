@@ -53,12 +53,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <repositories>
-        <repository>
-            <id>reactivesecuritygithubrepo</id>
-            <name>reactivesecurity github repo</name>
-            <url>http://voltir.github.io/local-link/</url>
-            <layout>default</layout>
-        </repository>
-    </repositories>
 </project>
