@@ -145,7 +145,6 @@ object Macros {
     val volatileLinkTpe = weakTypeTag[VolatileLink].tpe
     baseScreenTrait.knownDirectSubclasses.flatMap { sym =>
       val isSealedTrait = sym.asClass.isTrait && sym.asClass.isSealed
-
       if(sym.asClass.baseClasses.exists(_.asType.toType <:< volatileLinkTpe)) {
         List(cq"_: ${sym.asType} => true")
       }
