@@ -140,28 +140,33 @@ object Macros {
     }
   }
 
+  private def generateVolatileLinks(c: blackbox.Context)(baseScreenTrait: c.universe.ClassSymbol): Set[c.universe.Tree] = {
+    import c.universe._
+    val volatileLinkTpe = weakTypeTag[VolatileLink].tpe
+    baseScreenTrait.knownDirectSubclasses.flatMap { sym =>
+      val isSealedTrait = sym.asClass.isTrait && sym.asClass.isSealed
+
+      if(sym.asClass.baseClasses.exists(_.asType.toType <:< volatileLinkTpe)) {
+        List(cq"_: ${sym.asType} => true")
+      }
+      else if(isSealedTrait) {
+        generateVolatileLinks(c)(sym.asClass)
+      }
+      else List.empty
+    }
+  }
+
   def generateRouter[Link: c.WeakTypeTag](c: blackbox.Context)(default: c.Expr[Link])(R: c.Expr[upickle.Reader[Link]], w: c.Expr[upickle.Writer[Link]]): c.Expr[Router[Link]] = {
     import c.universe._
-
     val linkTpe = weakTypeTag[Link].tpe
 
     if(!linkTpe.typeSymbol.asClass.isTrait || !linkTpe.typeSymbol.asClass.isSealed) {
       c.abort(c.enclosingPosition, "Routes may only use a sealed trait")
     }
-
     val clsSymbol = linkTpe.typeSymbol.asClass
-
     val linkToUrl = generateLinksToUrl(c)("/",clsSymbol)
-
-    val volatileLinkTpe = weakTypeTag[VolatileLink].tpe
-    val volatileLinks = clsSymbol.knownDirectSubclasses.flatMap { sym =>
-      if(sym.asClass.baseClasses.exists(_.asType.toType <:< volatileLinkTpe)) {
-        Option(cq"_: ${sym.asType} => true")
-      }
-      else None
-    }
-
     val urlToLink = generateUrlToLinks[Link](c)(urlRoot(c)("/",clsSymbol.fullName),clsSymbol)
+    val volatileLinks = generateVolatileLinks(c)(clsSymbol)
 
     val table = c.Expr[RouteTable[Link]](q"""
       new RouteTable[$linkTpe] {

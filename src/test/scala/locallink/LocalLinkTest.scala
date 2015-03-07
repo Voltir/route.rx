@@ -32,7 +32,7 @@ object LocalLinkTest extends TestSuite {
   //url: /nested/deep
   case object DeepScreen extends NestedScreen
   //url: /nested/otherdeep/<id>
-  case class OtherDeepScreen(user: FakeUser) extends NestedScreen
+  case class OtherDeepScreen(user: FakeUser) extends NestedScreen with VolatileLink
 
   sealed trait DeeperScreen extends NestedScreen
   //url: /nested/deeper/reallydeep
