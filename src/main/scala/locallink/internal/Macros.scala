@@ -140,11 +140,6 @@ object Macros {
     }
   }
 
-
-
-
-
-
   def generateRouter[Link: c.WeakTypeTag](c: blackbox.Context)(default: c.Expr[Link])(R: c.Expr[upickle.Reader[Link]], w: c.Expr[upickle.Writer[Link]]): c.Expr[Router[Link]] = {
     import c.universe._
 
