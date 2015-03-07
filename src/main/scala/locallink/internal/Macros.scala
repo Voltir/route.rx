@@ -38,71 +38,83 @@ object Macros {
     }"""
   }
 
-  def generateRouter[Link: c.WeakTypeTag](c: blackbox.Context)(default: c.Expr[Link])(R: c.Expr[upickle.Reader[Link]], w: c.Expr[upickle.Writer[Link]]): c.Expr[Router[Link]] = {
+  private def urlRoot(c: blackbox.Context)(urlPrefix: String, baseScreenTraitFullName: String): String = {
+    val rootSymbolName = baseScreenTraitFullName.split('.').toList.lastOption.getOrElse("Screen")
+    if(!rootSymbolName.endsWith("Screen")) {
+      c.abort(c.enclosingPosition,"Route traits and objects must end in 'Screen'")
+    }
+    val nameSize = rootSymbolName.length - "Screen".length
+    s"${urlPrefix}${if(nameSize > 0) rootSymbolName.take(nameSize).toLowerCase+"/" else ""}"
+  }
+
+  private def generateLinksToUrl(c: blackbox.Context)(urlPrefix: String, baseScreenTrait: c.universe.ClassSymbol): Set[c.universe.Tree] = {
+    import c.universe._
+
+    if(baseScreenTrait.knownDirectSubclasses.isEmpty) {
+      c.abort(c.enclosingPosition, "Error with knownDirectSubclasses (SI-7046)")
+    }
+
+    val rootPart = urlRoot(c)(urlPrefix,baseScreenTrait.fullName)
+
+    baseScreenTrait.knownDirectSubclasses.map { sym =>
+      val isCaseObject = sym.asClass.isCaseClass && sym.asClass.isModuleClass
+      val isCaseClass = sym.asClass.isCaseClass && !sym.asClass.isModuleClass
+      val isSealedTrait = sym.asClass.isTrait && sym.asClass.isSealed
+      if (isCaseObject) urlForCaseObject(c)(rootPart, sym)
+      else if (isCaseClass) urlForCaseClass(c)(rootPart, sym)
+      else if (isSealedTrait)  {
+        cq"e: ${sym.asType} => e match { case ..${generateLinksToUrl(c)(rootPart,sym.asClass)} }"
+      }
+      else {
+        c.abort(c.enclosingPosition, "Unknown Subclass Type!")
+      }
+    }
+  }
+
+  private def generateUrlToLinks[Link: c.WeakTypeTag](c: blackbox.Context)(rootPart: String, baseScreenTrait: c.universe.ClassSymbol): Set[c.universe.Tree] = {
     import c.universe._
 
     val linkTpe = weakTypeTag[Link].tpe
 
-    if(!linkTpe.typeSymbol.asClass.isTrait || !linkTpe.typeSymbol.asClass.isSealed) {
-      c.abort(c.enclosingPosition, "Routes may only use a sealed trait")
-    }
-
-    val rootSymbolName = linkTpe.typeSymbol.asClass.fullName.split('.').toList.lastOption.getOrElse("Screen")
-    if(!rootSymbolName.endsWith("Screen")) {
-      c.abort(c.enclosingPosition,"Base route must end in 'Screen'")
-    }
-
-    val rootPart =
-      if(rootSymbolName == "Screen") "/"
-      else "/" + rootSymbolName.take(rootSymbolName.length - "Screen".length).toLowerCase + "/"
-
-    val clsSymbol = linkTpe.typeSymbol.asClass
-
-    if(clsSymbol.knownDirectSubclasses.isEmpty) {
-      c.abort(c.enclosingPosition, "Error with knownDirectSubclasses (SI-7046)")
-    }
-
-    val linkToUrl = clsSymbol.knownDirectSubclasses.map { sym =>
-      val isCaseObject = sym.asClass.isCaseClass && sym.asClass.isModuleClass
-      val isCaseClass = sym.asClass.isCaseClass && !sym.asClass.isModuleClass
-      if (isCaseObject) urlForCaseObject(c)(rootPart,sym)
-      else if (isCaseClass) urlForCaseClass(c)(rootPart,sym)
-      else {
-        c.abort(c.enclosingPosition,"Unknown Subclass Type!")
-      }
-    }
-
-    val volatileLinkTpe = weakTypeTag[VolatileLink].tpe
-    val volatileLinks = clsSymbol.knownDirectSubclasses.flatMap { sym =>
-      if(sym.asClass.baseClasses.exists(_.asType.toType <:< volatileLinkTpe)) {
-        Option(cq"_: ${sym.asType} => true")
-      }
-      else None
-    }
-
-    val urlToLink = clsSymbol.knownDirectSubclasses.map { sym =>
+    baseScreenTrait.knownDirectSubclasses.map { sym =>
 
       if(!sym.fullName.endsWith("Screen")) {
         c.abort(c.enclosingPosition,"All link types must end in Screen")
       }
 
       val isCaseObject = sym.asClass.isCaseClass && sym.asClass.isModuleClass
-
       val isCaseClass = sym.asClass.isCaseClass && !sym.asClass.isModuleClass
+      val isSealedTrait = sym.asClass.isTrait && sym.asClass.isSealed
 
       if(isCaseObject) {
         val url = prefix(rootPart, sym.fullName)
         val basicCaseObject = q"{ case ((_:String),(ec:ExecutionContext)) => Future(${sym.asClass.module})(ec)}"
         q"$url -> $basicCaseObject"
-      } else {
+      }
+
+      else if(isSealedTrait) {
+        val prefix = urlRoot(c)(rootPart,sym.fullName)
+        val omg = generateUrlToLinks(c)("/",sym.asClass)
+        val subtable = q"""{ case ((remaining:String),(ec:ExecutionContext)) =>
+          val unurl: Map[String, (String,ExecutionContext) => Future[$linkTpe]] = Map(..$omg)
+          val asurl = "/"+remaining
+          unurl
+            .toList
+            .sortBy(_._1)(implicitly[Ordering[String]].reverse)
+            .find(part => asurl.startsWith(part._1))
+            .map
+          { case (matched,builder) =>
+            builder(asurl.drop(matched.size),ec)
+          }.get
+        }"""
+        q"""$prefix  -> $subtable"""
+      }
+
+      else if(isCaseClass) {
         val url = prefix(rootPart, sym.fullName)
-
         val companion = getCompanion(c)(sym.asType.toType)
-
         val unusedParts = TermName("unusedParts")
-
         val accessors = sym.asType.info.decls.filter(_.asTerm.isAccessor)
-
         val elemPartials = accessors.zipWithIndex.map { case (acc,idx) =>
           val accTerm = TermName(s"acc$idx")
           val thing = q"implicitly[UrlPart[${acc.asTerm}]]"
@@ -112,20 +124,49 @@ object Macros {
               $unusedParts = $unusedParts.drop(partial.size)
               r
           }"""
+          //""""""
         }
-
         val accessorsTerms = (0 until accessors.size).map { idx => TermName(s"acc$idx") }
-
         val builder = q"""{ case ((remaining:String),(ec:ExecutionContext)) =>
           var $unusedParts = remaining.split('/').toList.drop(1)
           for (..$elemPartials) yield { $companion.apply(..$accessorsTerms) }
         }"""
-
         q"$url -> $builder"
       }
+
+      else {
+        c.abort(c.enclosingPosition,"Unknown Subclass Type!")
+      }
+    }
+  }
+
+
+
+
+
+
+  def generateRouter[Link: c.WeakTypeTag](c: blackbox.Context)(default: c.Expr[Link])(R: c.Expr[upickle.Reader[Link]], w: c.Expr[upickle.Writer[Link]]): c.Expr[Router[Link]] = {
+    import c.universe._
+
+    val linkTpe = weakTypeTag[Link].tpe
+
+    if(!linkTpe.typeSymbol.asClass.isTrait || !linkTpe.typeSymbol.asClass.isSealed) {
+      c.abort(c.enclosingPosition, "Routes may only use a sealed trait")
     }
 
-    //""""""
+    val clsSymbol = linkTpe.typeSymbol.asClass
+
+    val linkToUrl = generateLinksToUrl(c)("/",clsSymbol)
+
+    val volatileLinkTpe = weakTypeTag[VolatileLink].tpe
+    val volatileLinks = clsSymbol.knownDirectSubclasses.flatMap { sym =>
+      if(sym.asClass.baseClasses.exists(_.asType.toType <:< volatileLinkTpe)) {
+        Option(cq"_: ${sym.asType} => true")
+      }
+      else None
+    }
+
+    val urlToLink = generateUrlToLinks[Link](c)(urlRoot(c)("/",clsSymbol.fullName),clsSymbol)
 
     val table = c.Expr[RouteTable[Link]](q"""
       new RouteTable[$linkTpe] {
@@ -139,12 +180,13 @@ object Macros {
         }
 
         def linkGiven(url: String, onError: $linkTpe)(implicit ec: ExecutionContext): Future[$linkTpe] = {
-          unUrl.find(part => url.startsWith(part._1)).map { case (matched,builder) =>
+          unUrl
+            .toList
+            .sortBy(_._1)(implicitly[Ordering[String]].reverse)
+            .find(part => url.startsWith(part._1)).map
+          { case (matched,builder) =>
             val remaining = url.drop(matched.size)
-            builder(remaining,ec).recover { case err =>
-              println("Error building link: " + err.getMessage)
-              onError
-            }
+            builder(remaining,ec).recover { case err  => onError }
           }.getOrElse(Future(onError))
         }
       }
@@ -152,5 +194,4 @@ object Macros {
 
     c.Expr[Router[Link]](q"new Router[$linkTpe]($default,$table)")
   }
-
 }

@@ -13,14 +13,30 @@ object LocalLinkTest extends TestSuite {
 
   case class OtherRandomThing(foo: Int, bar: String)
 
+  //url: /
   sealed trait Screen
+
+  //url: /foo
   case object FooScreen extends Screen
   case object BarScreen extends Screen
   case object BazScreen extends Screen
+
+  //url: /profile/<id>
   case class ProfileScreen(user: FakeUser) extends Screen
   case class FriendScreen(user: FakeUser) extends Screen
   case class MultiScreen(thing: OtherRandomThing, user: FakeUser) extends Screen
   case class TestVolatileScreen(user: FakeUser) extends Screen with VolatileLink
+
+  //url: /nested
+  sealed trait NestedScreen extends Screen
+  //url: /nested/deep
+  case object DeepScreen extends NestedScreen
+  //url: /nested/otherdeep/<id>
+  case class OtherDeepScreen(user: FakeUser) extends NestedScreen
+
+  sealed trait DeeperScreen extends NestedScreen
+  //url: /nested/deeper/reallydeep
+  case object ReallyDeepScreen extends DeeperScreen
 
   implicit val FakeUserUrlParts = new UrlPart[FakeUser] {
     override val size = 1
@@ -69,6 +85,18 @@ object LocalLinkTest extends TestSuite {
       assert(dom.window.location.pathname == "/multi/100/BAR-STRING/EXTRA-PART/99")
     }
 
+    'nestedTest {
+      routes.goto(DeepScreen)
+      assert(dom.window.location.pathname == "/nested/deep")
+      routes.goto(OtherDeepScreen(FakeUser(99,"Another User")))
+      assert(dom.window.location.pathname == "/nested/otherdeep/99")
+    }
+
+    'deeperTest {
+      routes.goto(ReallyDeepScreen)
+      assert(dom.window.location.pathname == "/nested/deeper/reallydeep")
+    }
+
     'parseUrls {
       * - routes.parseUrl("/foo").map { s => assertMatch(s){case FooScreen => }}
       * - routes.parseUrl("/bar").map { s => assertMatch(s){case BarScreen => }}
@@ -78,14 +106,15 @@ object LocalLinkTest extends TestSuite {
       * - routes.parseUrl("/multi/10/MY-RANDOM-BAR/AND-AlSO-WHO/1001").map {
         s => assertMatch(s){case MultiScreen(OtherRandomThing(10,"MY-RANDOM-BAR"),FakeUser(1001,_)) =>}
       }
+      * - routes.parseUrl("/nested/deep").map { s => assertMatch(s){case DeepScreen => }}
+      * - routes.parseUrl("/nested/deeper/reallydeep").map { s => assertMatch(s){case ReallyDeepScreen => }}
     }
 
     'prefixTest {
       sealed trait AdminScreen
-      case object TestScreen extends AdminScreen
-      val routes: Router[AdminScreen] = Router.generate[AdminScreen](TestScreen)
-      println(dom.window.location.pathname)
-      assert(dom.window.location.pathname == "/admin/test")
+      case object ThingScreen extends AdminScreen
+      val routes: Router[AdminScreen] = Router.generate[AdminScreen](ThingScreen)
+      assert(dom.window.location.pathname == "/admin/thing")
     }
   }
 }

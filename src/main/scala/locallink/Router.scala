@@ -56,5 +56,5 @@ class Router[Link](default: Link, table: RouteTable[Link])(implicit R: upickle.R
 
 object Router {
   import locallink.internal._
-  def generate[Link](default: Link)(implicit R: upickle.Reader[Link], w: upickle.Writer[Link]): Router[Link] = macro locallink.internal.Macros.generateRouter[Link]
+  def generate[Link](default: Link)(implicit R: upickle.Reader[Link], w: upickle.Writer[Link]): Router[Link] = macro Macros.generateRouter[Link]
 }
