@@ -88,7 +88,7 @@ object Macros {
 
       if(isCaseObject) {
         val url = prefix(rootPart, sym.fullName)
-        val basicCaseObject = q"{ case ((_:String),(ec:ExecutionContext)) => Future(${sym.asClass.module})(ec)}"
+        val basicCaseObject = q"{ case ((_:String),(ec:ExecutionContext)) => Future.successful(${sym.asClass.module})}"
         q"$url -> $basicCaseObject"
       }
 
