@@ -46,7 +46,7 @@ object Macros {
     cq"""$term: ${sym.asType} => {
       val allParts = List(..$toParts).flatten
       ${prefix(c)(rootPart, sym.asClass)} + "/" + allParts.mkString("/")
-    }"""
+    }""" //"""
   }
 
   private def urlRoot(c: blackbox.Context)(urlPrefix: String, baseScreenTraitFullName: String): String = {
@@ -134,8 +134,7 @@ object Macros {
               val r = partial.fromParts($unusedParts.take(partial.size))
               $unusedParts = $unusedParts.drop(partial.size)
               r
-          }"""
-          //""""""
+          }""" //"""
         }
         val accessorsTerms = (0 until accessors.size).map { idx => TermName(s"acc$idx") }
         val builder = q"""{ case ((remaining:String),(ec:ExecutionContext)) =>

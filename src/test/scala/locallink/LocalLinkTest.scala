@@ -62,11 +62,6 @@ object LocalLinkTest extends TestSuite {
   def tests = TestSuite {
     val routes = Router.generate[Screen](FooScreen)
 
-    'defaultHref {
-      assert(routes.current.now == FooScreen)
-      assert(dom.window.location.pathname == "/foo")
-     }
-
     'linkToBasics {
       routes.goto(BarScreen)
       assert(routes.current.now == BarScreen)
@@ -122,6 +117,7 @@ object LocalLinkTest extends TestSuite {
       sealed trait AdminScreen
       case object ThingScreen extends AdminScreen
       val routes: Router[AdminScreen] = Router.generate[AdminScreen](ThingScreen)
+      routes.goto(ThingScreen)
       assert(dom.window.location.pathname == "/admin/thing")
     }
   }
