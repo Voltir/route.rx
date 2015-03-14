@@ -1,6 +1,5 @@
 package locallink
 
-
 import upickle._
 import org.scalajs.dom
 import org.scalajs.dom.raw.PopStateEvent
@@ -22,10 +21,7 @@ class Router[Link](default: Link, table: RouteTable[Link])(implicit R: upickle.R
     }
   }
 
-  val current: Var[Link] = {
-    updateBrowserHistory(dom.window.history.pushState)(default)
-    Var(default)
-  }
+  val current: Var[Link] = Var(default)
 
   def goto(link: Link): Unit = {
     updateBrowserHistory(dom.window.history.pushState)(link)
