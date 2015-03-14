@@ -1,4 +1,5 @@
 import scala.concurrent.{Future, ExecutionContext}
+import scala.annotation.StaticAnnotation
 
 package object locallink {
   /**
@@ -19,4 +20,6 @@ package object locallink {
    * And will in effect force a reload during a popstate event
    */
   trait VolatileLink
+
+  class fragment(f: String) extends StaticAnnotation
 }

@@ -1,7 +1,6 @@
 package locallink.internal
 
-import locallink.{VolatileLink, RouteTable, Router}
-
+import locallink.{VolatileLink, RouteTable, Router,fragment}
 import scala.language.experimental.macros
 import scala.reflect.macros._
 
@@ -14,16 +13,28 @@ object Macros {
     c.universe.internal.gen.mkAttributedRef(pre, tpe.typeSymbol.companion)
   }
 
-  def prefix(rootPart: String, fullName: String): String = {
-    val name = fullName.toLowerCase
-    val hackIdx = name.lastIndexOf('.')
-    val whatever = name.drop(hackIdx+1)
-    rootPart+whatever.take(whatever.length - "Screen".size).toLowerCase
+  def prefix(c: blackbox.Context)(rootPart: String, sym: c.universe.ClassSymbol): String = {
+    import c.universe._
+    val fragmentOverride: Option[String] = sym.annotations.collectFirst {
+      case frag if frag.tree.tpe <:< c.weakTypeOf[fragment] => {
+        frag.tree match {
+          case Apply(Select(_,_),List(Literal(Constant(x)))) => x.asInstanceOf[String]
+          case _ => c.abort(c.enclosingPosition,"Fragment arg must be a single literal string!")
+        }
+      }
+    }
+    val result = rootPart + fragmentOverride.getOrElse {
+      val name = sym.fullName.toLowerCase
+      val hackIdx = name.lastIndexOf('.')
+      val whatever = name.drop(hackIdx + 1)
+      whatever.take(whatever.length - "Screen".size)
+    }
+    result
   }
 
   private def urlForCaseObject(c: blackbox.Context)(rootPart: String, sym: c.universe.Symbol): c.Tree = {
     import c.universe._
-    cq"e: ${sym.asType} => ${prefix(rootPart, sym.fullName)}"
+    cq"e: ${sym.asType} => ${prefix(c)(rootPart, sym.asClass)}"
   }
 
   private def urlForCaseClass(c: blackbox.Context)(rootPart: String, sym: c.universe.Symbol): c.Tree = {
@@ -34,7 +45,7 @@ object Macros {
     }
     cq"""$term: ${sym.asType} => {
       val allParts = List(..$toParts).flatten
-      ${prefix(rootPart, sym.fullName)} + "/" + allParts.mkString("/")
+      ${prefix(c)(rootPart, sym.asClass)} + "/" + allParts.mkString("/")
     }"""
   }
 
@@ -87,7 +98,7 @@ object Macros {
       val isSealedTrait = sym.asClass.isTrait && sym.asClass.isSealed
 
       if(isCaseObject) {
-        val url = prefix(rootPart, sym.fullName)
+        val url = prefix(c)(rootPart, sym.asClass)
         val basicCaseObject = q"{ case ((_:String),(ec:ExecutionContext)) => Future.successful(${sym.asClass.module})}"
         q"$url -> $basicCaseObject"
       }
@@ -111,7 +122,7 @@ object Macros {
       }
 
       else if(isCaseClass) {
-        val url = prefix(rootPart, sym.fullName)
+        val url = prefix(c)(rootPart, sym.asClass)
         val companion = getCompanion(c)(sym.asType.toType)
         val unusedParts = TermName("unusedParts")
         val accessors = sym.asType.info.decls.filter(_.asTerm.isAccessor)

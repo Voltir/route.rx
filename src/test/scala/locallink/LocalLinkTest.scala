@@ -13,35 +13,34 @@ object LocalLinkTest extends TestSuite {
 
   case class OtherRandomThing(foo: Int, bar: String)
 
-  //url: /
   sealed trait Screen
-
-  //url: /foo
   case object FooScreen extends Screen
   case object BarScreen extends Screen
   case object BazScreen extends Screen
-
-  //url: /profile/<id>
   case class ProfileScreen(user: FakeUser) extends Screen
   case class FriendScreen(user: FakeUser) extends Screen
   case class MultiScreen(thing: OtherRandomThing, user: FakeUser) extends Screen
   case class TestVolatileScreen(user: FakeUser) extends Screen with VolatileLink
 
-  //url: /nested
   sealed trait NestedScreen extends Screen
-  //url: /nested/deep
   case object DeepScreen extends NestedScreen
-  //url: /nested/otherdeep/<id>
   case class OtherDeepScreen(user: FakeUser) extends NestedScreen with VolatileLink
 
   sealed trait DeeperScreen extends NestedScreen
-  //url: /nested/deeper/reallydeep
   case object ReallyDeepScreen extends DeeperScreen
+
+  //url: /user/profile
+  sealed trait UserScreen extends Screen
+  @fragment("profile") case object UserProfileScreen extends UserScreen
+
+  //url: /account/profile
+  sealed trait AccountScreen extends Screen
+  @fragment("profile") case object AccountProfileScreen extends AccountScreen
 
   implicit val FakeUserUrlParts = new UrlPart[FakeUser] {
     override val size = 1
 
-    override def toParts(inp: FakeUser) = List(inp.id.toString)
+    override def toParts(inp: FakeUser) = inp.id.toString :: Nil
 
     override def fromParts(parts: List[String])(implicit ec: ExecutionContext): Future[FakeUser] = parts match {
       case id :: Nil => Future(FakeUser(id.toInt,"This would normally come from the server"))
@@ -97,6 +96,13 @@ object LocalLinkTest extends TestSuite {
       assert(dom.window.location.pathname == "/nested/deeper/reallydeep")
     }
 
+    'fragmentOverrideTest {
+      routes.goto(UserProfileScreen)
+      assert(dom.window.location.pathname == "/user/profile")
+      routes.goto(AccountProfileScreen)
+      assert(dom.window.location.pathname == "/account/profile")
+    }
+
     'parseUrls {
       * - routes.parseUrl("/foo").map { s => assertMatch(s){case FooScreen => }}
       * - routes.parseUrl("/bar").map { s => assertMatch(s){case BarScreen => }}
@@ -108,6 +114,8 @@ object LocalLinkTest extends TestSuite {
       }
       * - routes.parseUrl("/nested/deep").map { s => assertMatch(s){case DeepScreen => }}
       * - routes.parseUrl("/nested/deeper/reallydeep").map { s => assertMatch(s){case ReallyDeepScreen => }}
+      * - routes.parseUrl("/user/profile").map { s => assertMatch(s){case UserProfileScreen => }}
+      * - routes.parseUrl("/account/profile").map { s => assertMatch(s){case AccountProfileScreen => }}
     }
 
     'prefixTest {
