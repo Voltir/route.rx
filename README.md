@@ -48,6 +48,6 @@ local-link is currently only compiled for Scala.js 0.6+
 
 Quick Demo
 ==========
-[Demo](voltir.github.io/local-link-demo)
+[Demo](https://voltir.github.io/local-link-demo)
 
 [Demo Source](https://github.com/Voltir/local-link)
