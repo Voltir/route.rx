@@ -127,9 +127,6 @@ object LocalLinkTest extends TestSuite {
       case object OtherScreen extends TestScreen
       val rotuesz: Router[TestScreen] = Router.generateWithPrefix[TestScreen](OtherScreen, dynamic)
       rotuesz.goto(OtherScreen)
-      println(dom.window.location.pathname)
-      println(dom.window.location.pathname)
-      println(dom.window.location.pathname)
       assert(dom.window.location.pathname == "/url-prefix/test/other")
       rotuesz.parseUrl("/url-prefix/test/other").map { s =>  assertMatch(s){case OtherScreen => }}
     }

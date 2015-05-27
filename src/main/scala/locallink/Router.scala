@@ -17,7 +17,6 @@ class Router[Link](default: Link, table: RouteTable[Link], prefix: Option[String
 
   private def updateBrowserHistory(stateFunc: (js.Any,String,String) => Unit)(link: Link) = {
     val fullUrl = urlPrefix + table.urlFor(link)
-    println("USING FULL URL: " + fullUrl)
     if(table.isVolatileLink(link)) {
       stateFunc(null, null, fullUrl)
     } else {
@@ -49,7 +48,6 @@ class Router[Link](default: Link, table: RouteTable[Link], prefix: Option[String
     else {
       val urlDynamicPart = dom.window.location.pathname.drop(urlPrefix.length)
       println("URL DYNAMIC PART: " + urlDynamicPart)
-      //parseUrl(dom.window.location.pathname).map { link =>
       parseUrl(urlDynamicPart).map { link =>
         current() = link
       }

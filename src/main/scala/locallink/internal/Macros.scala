@@ -13,7 +13,7 @@ object Macros {
     c.universe.internal.gen.mkAttributedRef(pre, tpe.typeSymbol.companion)
   }
 
-  def prefix(c: blackbox.Context)(rootPart: String, sym: c.universe.ClassSymbol): String = {
+  def prefixForSym(c: blackbox.Context)(rootPart: String, sym: c.universe.ClassSymbol): String = {
     import c.universe._
     val fragmentOverride: Option[String] = sym.annotations.collectFirst {
       case frag if frag.tree.tpe <:< c.weakTypeOf[fragment] => {
@@ -24,31 +24,21 @@ object Macros {
       }
     }
     val result = rootPart + fragmentOverride.getOrElse {
-      println("CONVERT NAME TO URL PATH: " + sym.fullName)
       val fullNamePart = sym.fullName.drop(sym.fullName.lastIndexOf('.') + 1).dropRight("Screen".size)
-      println(fullNamePart)
-
       val nameFragments = fullNamePart.foldLeft(List.empty[String]) { case (acc,char) =>
         acc match {
           case all if char.isUpper => char.toString.toLowerCase :: all
           case x :: tail => x + char.toString :: tail
         }
       }
-      println(nameFragments)
-      val meh = nameFragments.reverse.mkString("-")
-      println(s"==================== $meh ========================")
-      meh
-      //val name = sym.fullName.toLowerCase
-      //val hackIdx = name.lastIndexOf('.')
-      //val whatever = name.drop(hackIdx + 1)
-      //whatever.take(whatever.length - "Screen".size)
+      nameFragments.reverse.mkString("-")
     }
     result
   }
 
   private def urlForCaseObject(c: blackbox.Context)(rootPart: String, sym: c.universe.Symbol): c.Tree = {
     import c.universe._
-    cq"e: ${sym.asType} => ${prefix(c)(rootPart, sym.asClass)}"
+    cq"e: ${sym.asType} => ${prefixForSym(c)(rootPart, sym.asClass)}"
   }
 
   private def urlForCaseClass(c: blackbox.Context)(rootPart: String, sym: c.universe.Symbol): c.Tree = {
@@ -59,7 +49,7 @@ object Macros {
     }
     cq"""$term: ${sym.asType} => {
       val allParts = List(..$toParts).flatten
-      ${prefix(c)(rootPart, sym.asClass)} + "/" + allParts.mkString("/")
+      ${prefixForSym(c)(rootPart, sym.asClass)} + "/" + allParts.mkString("/")
     }""" //"""
   }
 
@@ -112,7 +102,7 @@ object Macros {
       val isSealedTrait = sym.asClass.isTrait && sym.asClass.isSealed
 
       if(isCaseObject) {
-        val url = prefix(c)(rootPart, sym.asClass)
+        val url = prefixForSym(c)(rootPart, sym.asClass)
         val basicCaseObject = q"{ case ((_:String),(ec:ExecutionContext)) => Future.successful(${sym.asClass.module})}"
         q"$url -> $basicCaseObject"
       }
@@ -136,7 +126,7 @@ object Macros {
       }
 
       else if(isCaseClass) {
-        val url = prefix(c)(rootPart, sym.asClass)
+        val url = prefixForSym(c)(rootPart, sym.asClass)
         val companion = getCompanion(c)(sym.asType.toType)
         val unusedParts = TermName("unusedParts")
         val accessors = sym.asType.info.decls.filter(_.asTerm.isAccessor)
@@ -219,39 +209,6 @@ object Macros {
   def generateRouter[Link: c.WeakTypeTag](c: blackbox.Context)(default: c.Expr[Link])(R: c.Expr[upickle.Reader[Link]], w: c.Expr[upickle.Writer[Link]]): c.Expr[Router[Link]] = {
     import c.universe._
     val linkTpe = weakTypeTag[Link].tpe
-
-//    if(!linkTpe.typeSymbol.asClass.isTrait || !linkTpe.typeSymbol.asClass.isSealed) {
-//      c.abort(c.enclosingPosition, "Routes may only use a sealed trait")
-//    }
-//    val clsSymbol = linkTpe.typeSymbol.asClass
-//    val linkToUrl = generateLinksToUrl(c)("/",clsSymbol)
-//    val urlToLink = generateUrlToLinks[Link](c)(urlRoot(c)("/",clsSymbol.fullName),clsSymbol)
-//    val volatileLinks = generateVolatileLinks(c)(clsSymbol)
-//
-//    val table = c.Expr[RouteTable[Link]](q"""
-//      new RouteTable[$linkTpe] {
-//        private val unUrl: Map[String, (String,ExecutionContext) => Future[$linkTpe]] = Map(..$urlToLink)
-//
-//        def urlFor(link: $linkTpe): String = link match { case ..$linkToUrl }
-//
-//        def isVolatileLink(link: $linkTpe): Boolean = link match {
-//          case ..$volatileLinks
-//          case _ => false
-//        }
-//
-//        def linkGiven(url: String, onError: $linkTpe)(implicit ec: ExecutionContext): Future[$linkTpe] = {
-//          unUrl
-//            .toList
-//            .sortBy(_._1)(implicitly[Ordering[String]].reverse)
-//            .find(part => url.startsWith(part._1)).map
-//          { case (matched,builder) =>
-//            val remaining = url.drop(matched.size)
-//            builder(remaining,ec).recover { case err  => onError }
-//          }.getOrElse(Future(onError))
-//        }
-//      }
-//    """)
-
     val table = generateRouterTable(c)
     c.Expr[Router[Link]](q"""new Router[$linkTpe]($default,$table)""")
   }
