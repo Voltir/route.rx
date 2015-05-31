@@ -2,7 +2,7 @@ enablePlugins(ScalaJSPlugin)
 
 name := "local-link"
 
-organization := "com.stabletech"
+organization := "com.stabtechs"
 
 version := "0.0.4-SNAPSHOT"
 
