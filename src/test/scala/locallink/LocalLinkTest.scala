@@ -83,12 +83,12 @@ object LocalLinkTest extends TestSuite {
       routes.goto(DeepScreen)
       assert(dom.window.location.pathname == "/nested/deep")
       routes.goto(OtherDeepScreen(FakeUser(99,"Another User")))
-      assert(dom.window.location.pathname == "/nested/otherdeep/99")
+      assert(dom.window.location.pathname == "/nested/other-deep/99")
     }
 
     'deeperTest {
       routes.goto(ReallyDeepScreen)
-      assert(dom.window.location.pathname == "/nested/deeper/reallydeep")
+      assert(dom.window.location.pathname == "/nested/deeper/really-deep")
     }
 
     'fragmentOverrideTest {
@@ -108,17 +108,27 @@ object LocalLinkTest extends TestSuite {
         s => assertMatch(s){case MultiScreen(OtherRandomThing(10,"MY-RANDOM-BAR"),FakeUser(1001,_)) =>}
       }
       * - routes.parseUrl("/nested/deep").map { s => assertMatch(s){case DeepScreen => }}
-      * - routes.parseUrl("/nested/deeper/reallydeep").map { s => assertMatch(s){case ReallyDeepScreen => }}
+      * - routes.parseUrl("/nested/deeper/really-deep").map { s => assertMatch(s){case ReallyDeepScreen => }}
       * - routes.parseUrl("/user/profile").map { s => assertMatch(s){case UserProfileScreen => }}
       * - routes.parseUrl("/account/profile").map { s => assertMatch(s){case AccountProfileScreen => }}
     }
 
-    'prefixTest {
+    'traitAsPrefixTest {
       sealed trait AdminScreen
       case object ThingScreen extends AdminScreen
       val routes: Router[AdminScreen] = Router.generate[AdminScreen](ThingScreen)
       routes.goto(ThingScreen)
       assert(dom.window.location.pathname == "/admin/thing")
+    }
+
+    'dynamicPrefixTest {
+      val dynamic = "url-prefix"
+      sealed trait TestScreen
+      case object OtherScreen extends TestScreen
+      val rotuesz: Router[TestScreen] = Router.generateWithPrefix[TestScreen](OtherScreen, dynamic)
+      rotuesz.goto(OtherScreen)
+      assert(dom.window.location.pathname == "/url-prefix/test/other")
+      rotuesz.parseUrl("/url-prefix/test/other").map { s =>  assertMatch(s){case OtherScreen => }}
     }
   }
 }

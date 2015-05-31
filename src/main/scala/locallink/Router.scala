@@ -11,13 +11,16 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.language.experimental.macros
 import internal._
 
-class Router[Link](default: Link, table: RouteTable[Link])(implicit R: upickle.Reader[Link], w: upickle.Writer[Link]) {
+class Router[Link](default: Link, table: RouteTable[Link], prefix: Option[String] = None)(implicit R: upickle.Reader[Link], w: upickle.Writer[Link]) {
+
+  private val urlPrefix = prefix.map(p => if(p.startsWith("/")) p else "/" + p).getOrElse("")
 
   private def updateBrowserHistory(stateFunc: (js.Any,String,String) => Unit)(link: Link) = {
+    val fullUrl = urlPrefix + table.urlFor(link)
     if(table.isVolatileLink(link)) {
-      stateFunc(null, null, table.urlFor(link))
+      stateFunc(null, null, fullUrl)
     } else {
-      stateFunc(upickle.write(link), null, table.urlFor(link))
+      stateFunc(upickle.write(link), null, fullUrl)
     }
   }
 
@@ -29,7 +32,7 @@ class Router[Link](default: Link, table: RouteTable[Link])(implicit R: upickle.R
   }
 
   def switchTo(link: Link): Unit = {
-    updateBrowserHistory(dom.window.history.replaceState)(default)
+    updateBrowserHistory(dom.window.history.replaceState)(link)
     current() = link
   }
 
@@ -43,7 +46,9 @@ class Router[Link](default: Link, table: RouteTable[Link])(implicit R: upickle.R
       current() = link
     }
     else {
-      parseUrl(dom.window.location.pathname).map { link =>
+      val urlDynamicPart = dom.window.location.pathname.drop(urlPrefix.length)
+      println("URL DYNAMIC PART: " + urlDynamicPart)
+      parseUrl(urlDynamicPart).map { link =>
         current() = link
       }
     }
@@ -53,4 +58,5 @@ class Router[Link](default: Link, table: RouteTable[Link])(implicit R: upickle.R
 object Router {
   import locallink.internal._
   def generate[Link](default: Link)(implicit R: upickle.Reader[Link], w: upickle.Writer[Link]): Router[Link] = macro Macros.generateRouter[Link]
+  def generateWithPrefix[Link](default: Link, urlPrefix: String)(implicit R: upickle.Reader[Link], w: upickle.Writer[Link]): Router[Link] = macro Macros.generateRouterWithPrefix[Link]
 }

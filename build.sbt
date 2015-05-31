@@ -4,7 +4,7 @@ name := "local-link"
 
 organization := "com.stabtechs"
 
-version := "0.0.4-SNAPSHOT"
+version := "0.0.5-SNAPSHOT"
 
 scalaVersion := "2.11.6"
 
@@ -33,20 +33,20 @@ requiresDOM := true
 
 publishTo := Some(Resolver.file("Github Pages", new File("/home/nick/publish/local-link")))
 
-scmInfo := Some(ScmInfo(
-    url("https://github.com/Voltir/local-link"),
-    "scm:git:git@github.com/Voltir/local-link.git",
-    Some("scm:git:git@github.com/Voltir/local-link.git")))
+//scmInfo := Some(ScmInfo(
+//    url("https://github.com/Voltir/local-link"),
+//    "scm:git:git@github.com/Voltir/local-link.git",
+//    Some("scm:git:git@github.com/Voltir/local-link.git")))
 
-publishMavenStyle := true
+//publishMavenStyle := true
 
-publishTo := {
-  val nexus = "https://oss.sonatype.org/"
-  if (isSnapshot.value)
-    Some("snapshots" at nexus + "content/repositories/snapshots")
-  else
-    Some("releases" at nexus + "service/local/staging/deploy/maven2")
-}
+//publishTo := {
+//  val nexus = "https://oss.sonatype.org/"
+//  if (isSnapshot.value)
+//    Some("snapshots" at nexus + "content/repositories/snapshots")
+//  else
+//    Some("releases" at nexus + "service/local/staging/deploy/maven2")
+//}
 
 pomExtra := (
   <developers>
