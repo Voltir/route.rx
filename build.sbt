@@ -4,7 +4,7 @@ name := "local-link"
 
 organization := "com.stabletech"
 
-version := "0.0.5-SNAPSHOT"
+version := "0.0.6-SNAPSHOT"
 
 scalaVersion := "2.11.6"
 
@@ -14,7 +14,7 @@ licenses += ("MIT License", url("http://www.opensource.org/licenses/mit-license.
 
 libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "0.8.0"
 libraryDependencies += "com.lihaoyi" %%% "scalarx" % "0.2.8"
-libraryDependencies += "com.lihaoyi" %%% "upickle" % "0.2.8"
+libraryDependencies += "com.lihaoyi" %%% "upickle" % "0.3.4"
 libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value 
 
 jsDependencies += RuntimeDOM
