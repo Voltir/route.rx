@@ -1,5 +1,6 @@
 package locallink.internal
 
+import upickle.default._
 import locallink.{VolatileLink, RouteTable, Router,fragment}
 import scala.language.experimental.macros
 import scala.reflect.macros._
@@ -206,14 +207,14 @@ object Macros {
     """)
   }
 
-  def generateRouter[Link: c.WeakTypeTag](c: blackbox.Context)(default: c.Expr[Link])(R: c.Expr[upickle.Reader[Link]], w: c.Expr[upickle.Writer[Link]]): c.Expr[Router[Link]] = {
+  def generateRouter[Link: c.WeakTypeTag](c: blackbox.Context)(default: c.Expr[Link])(R: c.Expr[Reader[Link]], w: c.Expr[Writer[Link]]): c.Expr[Router[Link]] = {
     import c.universe._
     val linkTpe = weakTypeTag[Link].tpe
     val table = generateRouterTable(c)
     c.Expr[Router[Link]](q"""new Router[$linkTpe]($default,$table)""")
   }
 
-  def generateRouterWithPrefix[Link: c.WeakTypeTag](c: blackbox.Context)(default: c.Expr[Link], urlPrefix: c.Expr[String])(R: c.Expr[upickle.Reader[Link]], w: c.Expr[upickle.Writer[Link]]): c.Expr[Router[Link]] = {
+  def generateRouterWithPrefix[Link: c.WeakTypeTag](c: blackbox.Context)(default: c.Expr[Link], urlPrefix: c.Expr[String])(R: c.Expr[Reader[Link]], w: c.Expr[Writer[Link]]): c.Expr[Router[Link]] = {
     import c.universe._
     val linkTpe = weakTypeTag[Link].tpe
     val table = generateRouterTable(c)

@@ -1,6 +1,6 @@
 package locallink
 
-import upickle._
+import upickle.default._
 import org.scalajs.dom
 import org.scalajs.dom.raw.PopStateEvent
 import rx._
@@ -11,7 +11,7 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.language.experimental.macros
 import internal._
 
-class Router[Link](default: Link, table: RouteTable[Link], prefix: Option[String] = None)(implicit R: upickle.Reader[Link], w: upickle.Writer[Link]) {
+class Router[Link](default: Link, table: RouteTable[Link], prefix: Option[String] = None)(implicit R: Reader[Link], w: Writer[Link]) {
 
   private val urlPrefix = prefix.map(p => if(p.startsWith("/")) p else "/" + p).getOrElse("")
 
@@ -20,7 +20,7 @@ class Router[Link](default: Link, table: RouteTable[Link], prefix: Option[String
     if(table.isVolatileLink(link)) {
       stateFunc(null, null, fullUrl)
     } else {
-      stateFunc(upickle.write(link), null, fullUrl)
+      stateFunc(write(link), null, fullUrl)
     }
   }
 
@@ -42,12 +42,11 @@ class Router[Link](default: Link, table: RouteTable[Link], prefix: Option[String
 
   dom.window.onpopstate = { (evt: PopStateEvent) =>
     if(evt.state != null) {
-      val link = upickle.read[Link](evt.state.asInstanceOf[String])
+      val link = read[Link](evt.state.asInstanceOf[String])
       current() = link
     }
     else {
       val urlDynamicPart = dom.window.location.pathname.drop(urlPrefix.length)
-      println("URL DYNAMIC PART: " + urlDynamicPart)
       parseUrl(urlDynamicPart).map { link =>
         current() = link
       }
@@ -57,6 +56,6 @@ class Router[Link](default: Link, table: RouteTable[Link], prefix: Option[String
 
 object Router {
   import locallink.internal._
-  def generate[Link](default: Link)(implicit R: upickle.Reader[Link], w: upickle.Writer[Link]): Router[Link] = macro Macros.generateRouter[Link]
-  def generateWithPrefix[Link](default: Link, urlPrefix: String)(implicit R: upickle.Reader[Link], w: upickle.Writer[Link]): Router[Link] = macro Macros.generateRouterWithPrefix[Link]
+  def generate[Link](default: Link)(implicit R: Reader[Link], w: Writer[Link]): Router[Link] = macro Macros.generateRouter[Link]
+  def generateWithPrefix[Link](default: Link, urlPrefix: String)(implicit R: Reader[Link], w: Writer[Link]): Router[Link] = macro Macros.generateRouterWithPrefix[Link]
 }
