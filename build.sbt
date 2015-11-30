@@ -2,13 +2,13 @@ enablePlugins(ScalaJSPlugin)
 
 name := "local-link"
 
-organization := "com.stabtechs"
+organization := "com.stabletechs"
 
 version := "0.0.7"
 
 scalaVersion := "2.11.7"
 
-homepage := Some(url("http://stabtechs.com/"))
+homepage := Some(url("http://stabletechs.com/"))
 
 licenses += ("MIT License", url("http://www.opensource.org/licenses/mit-license.php"))
 
@@ -49,7 +49,7 @@ publishTo := {
     Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
 
-sonatypeProfileName := "com.stabtechs"
+sonatypeProfileName := "com.stabletechs"
 
 pomExtra := (
   <developers>
