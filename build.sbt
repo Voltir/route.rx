@@ -4,7 +4,7 @@ name := "local-link"
 
 organization := "com.stabtechs"
 
-version := "0.0.7-SNAPSHOT"
+version := "0.0.7"
 
 scalaVersion := "2.11.7"
 
@@ -13,7 +13,7 @@ homepage := Some(url("http://stabtechs.com/"))
 licenses += ("MIT License", url("http://www.opensource.org/licenses/mit-license.php"))
 
 libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "0.8.2"
-libraryDependencies += "com.lihaoyi" %%% "scalarx" % "0.3.1-SNAPSHOT"
+libraryDependencies += "com.lihaoyi" %%% "scalarx" % "0.2.8"
 libraryDependencies += "com.lihaoyi" %%% "upickle" % "0.3.4"
 libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value 
 
