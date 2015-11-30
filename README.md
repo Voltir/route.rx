@@ -1,4 +1,4 @@
-Local Link 1.0.0
+Local Link 0.0.7
 ================
 Macro magic to make "reactive" urls.
 
