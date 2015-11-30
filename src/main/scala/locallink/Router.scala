@@ -37,7 +37,7 @@ class Router[Link](default: Link, table: RouteTable[Link], prefix: Option[String
   }
 
   def parseUrl(url: String)(implicit ec: ExecutionContext): Future[Link] = {
-    table.linkGiven(url,default)
+    table.linkGiven(url.drop(urlPrefix.length),default)
   }
 
   dom.window.onpopstate = { (evt: PopStateEvent) =>
