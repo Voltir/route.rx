@@ -55,7 +55,7 @@ Quick Demo
 Details and Limitations
 =======================
 
-#Browser Only
+##Browser Only
 This library manipulates the browser history object through the JavaScript API. In order to make the app behave as if each screen really was its own "webpage", the server must route the urls properly to the app, and the app needs to read the url basically at page load, for example: 
 ```scala
 @JSExport
@@ -67,8 +67,8 @@ This library manipulates the browser history object through the JavaScript API. 
 }
 ```
 
-#Base trait needs to end in 'Screen'#
-Currently, it is required that the base sealed trait end with the word "Screen" -- the URL string is automatically generated from that trait and its children, and the suffix "Screen" is currently hard-coded into that logic. For example:
+##Base trait needs to end in 'Screen'
+Currently, it is required that the base sealed trait end with the word "Screen". The URL string is automatically generated from that trait and its children, and the suffix "Screen" is currently hard-coded into that logic. For example:
 ```scala
 sealed trait AdminScreen
 case class UserScreen(u: User) extends AdminScreen
@@ -78,7 +78,7 @@ will generate "/admin/user" and "/admin/dashboard".
 
 The logic doesn't have to be that way, so if there is interest in doing it some other way, that could be explored.
 
-#Fragment Annotation
+##Fragment Annotation
 It is possible to override part of the url generation with the @fragment annotation, for example
 ```scala
 sealed trait AdminScreen
@@ -102,8 +102,8 @@ trait AccountScreen extends AdminScreen
 ```
 will generate "/admin/user/profile" and "/admin/account/profile"  instead. 
 
-#UrlPart Typeclass
-In the examples, there are instances of case classes like User that occur in the Screen trait hierarchy - while these can be arbitrary case classes, this works through the use of a "UrlPart" Typeclass, which defines how to map an arbitrary case class to/from the URL representation. For example, often these case classes have an Id parameter like UserId or AccountId - this internally might be a Long or String and can be represented in the URL.
+##UrlPart Typeclass
+In the examples, there are instances of case classes (eg User) that occur in the Screen trait hierarchy - while these can be arbitrary case classes, this works through the use of a "UrlPart" Typeclass, which defines how to map an arbitrary case class to/from the URL representation. 
 
 The typeclass itself is defined as 
 ```scala
@@ -114,7 +114,7 @@ The typeclass itself is defined as
   }
 ```
 
-In the case of a User object, it might be used like (using autowire as an example of retrieving a User object from the server, given its ID):
+Often, these case classes will have something like a UserId, in the case of a User object and the mapping might look something like this (using autowire as an example of retrieving a User object from the server):
 ```scala
   implicit val UserUrlPart = new UrlPart[User] {
     override val size = 1
