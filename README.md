@@ -41,7 +41,7 @@ Getting Started
 
 
 ```scala
-"com.stabletechs" %%% "local-link" % "0.0.7"
+"com.stabletechs" %%% "local-link" % "1.0.0"
 ```
 
 local-link is currently only compiled for Scala.js 0.6+
