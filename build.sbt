@@ -4,7 +4,7 @@ name := "local-link"
 
 organization := "com.stabletechs"
 
-version := "1.0.0"
+version := "1.1.0-SNAPSHOT"
 
 scalaVersion := "2.11.7"
 
@@ -12,6 +12,7 @@ homepage := Some(url("http://stabletechs.com/"))
 
 licenses += ("MIT License", url("http://www.opensource.org/licenses/mit-license.php"))
 
+libraryDependencies += "com.stabletechs" %%% "likelib" % "0.1.1"
 libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "0.8.2"
 libraryDependencies += "com.lihaoyi" %%% "scalarx" % "0.2.8"
 libraryDependencies += "com.lihaoyi" %%% "upickle" % "0.3.4"

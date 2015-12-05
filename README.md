@@ -1,5 +1,5 @@
-Local Link 0.0.7
-================
+Local Link
+==========
 Macro magic to make "reactive" urls.
 
 ```scala    
@@ -50,7 +50,7 @@ Quick Demo
 ==========
 [Demo](https://voltir.github.io/local-link-demo)
 
-[Demo Source](https://github.com/Voltir/local-link)
+[Demo Source](https://github.com/Voltir/local-link-demo)
 
 Details and Limitations
 =======================
@@ -133,4 +133,4 @@ With this implicit in scope, any "Screen" trait can take as a parameter a User o
     override def fromParts(parts: List[String])(implicit ec: ExecutionContext): Future[User] = ???
   }
 ```
-Just note that doing so will cause a run time error if the user tries to navigate directly (ie copy/paste) to a URL that depends on that typeclass. 
+Just note that doing so will cause a run time error if the user tries to navigate directly (ie copy/paste) to a URL that depends on that typeclass.
