@@ -59,10 +59,9 @@ Details and Limitations
 This library manipulates the browser history object through the JavaScript API. In order to make the app behave as if each screen really was its own "webpage", the server must route the urls properly to the app, and the app needs to read the url basically at page load, for example: 
 ```scala
 @JSExport
-  def main(): Unit = {
-    router.parseUrl(dom.window.location.pathname).flatMap { route =>
-      router.goto(route)
-    }
+def main(): Unit = {
+  router.parseUrl(dom.window.location.pathname).flatMap { route =>
+    router.goto(route)
   }
 }
 ```
