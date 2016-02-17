@@ -184,6 +184,8 @@ object Macros {
 
     c.Expr[RouteTable[Link]](q"""
       new RouteTable[$linkTpe] {
+        import scala.concurrent.{Future,ExecutionContext}
+
         private val unUrl: Map[String, (String,ExecutionContext) => Future[$linkTpe]] = Map(..$urlToLink)
 
         def urlFor(link: $linkTpe): String = link match { case ..$linkToUrl }

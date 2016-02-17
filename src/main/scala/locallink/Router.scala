@@ -56,6 +56,11 @@ class Router[Link](default: Link, table: RouteTable[Link], prefix: Option[String
 
 object Router {
   import locallink.internal._
-  def generate[Link](default: Link)(implicit R: Reader[Link], w: Writer[Link]): Router[Link] = macro Macros.generateRouter[Link]
-  def generateWithPrefix[Link](default: Link, urlPrefix: String)(implicit R: Reader[Link], w: Writer[Link]): Router[Link] = macro Macros.generateRouterWithPrefix[Link]
+  def generate[Link](default: Link)(implicit R: Reader[Link], w: Writer[Link]): Router[Link] =
+    macro Macros.generateRouter[Link]
+
+  def generateWithPrefix[Link](default: Link,
+                               urlPrefix: String)
+                              (implicit R: Reader[Link], w: Writer[Link]): Router[Link] =
+    macro Macros.generateRouterWithPrefix[Link]
 }

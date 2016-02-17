@@ -3,7 +3,6 @@ package locallink.implicits
 import locallink.UrlPart
 
 trait PrimitiveTypes {
-
   import scala.concurrent.{ExecutionContext,Future}
 
   implicit val StringPart = new UrlPart[String] {
@@ -34,5 +33,15 @@ trait PrimitiveTypes {
     val size = 1
     def toParts(inp: Double) = List(inp.toString)
     def fromParts(inp: List[String])(implicit ec: ExecutionContext): Future[Double] = Future.successful(inp.head.toDouble)
+  }
+
+  implicit val BooleanPart: UrlPart[Boolean] = new UrlPart[Boolean] {
+    val size = 1
+    def toParts(inp: Boolean) = if(inp) "t" :: Nil else "f" :: Nil
+    def fromParts(inp: List[String])(implicit ec: ExecutionContext) = inp match {
+      case "t" :: Nil => Future.successful(true)
+      case "f" :: Nil => Future.successful(false)
+      case _ => Future.failed(new Throwable("Invalid Boolean Argument!"))
+    }
   }
 }
