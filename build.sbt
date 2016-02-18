@@ -1,6 +1,6 @@
 enablePlugins(ScalaJSPlugin)
 
-name := "local-link"
+name := "route.rx"
 
 organization := "com.stabletechs"
 
@@ -33,9 +33,9 @@ scalaJSUseRhino in Global := false
 requiresDOM := true
 
 scmInfo := Some(ScmInfo(
-    url("https://github.com/Voltir/local-link"),
-    "scm:git:git@github.com/Voltir/local-link.git",
-    Some("scm:git:git@github.com/Voltir/local-link.git")))
+    url("https://github.com/Voltir/route.rx"),
+    "scm:git:git@github.com/Voltir/route.rx.git",
+    Some("scm:git:git@github.com/Voltir/route.rx.git")))
 
 publishMavenStyle := true
 publishArtifact in Test := false

@@ -1,7 +1,7 @@
-package locallink.implicits
+package routerx.implicits
 
 import likelib.{IntLike, LongLike}
-import locallink.UrlPart
+import routerx.UrlPart
 
 import scala.concurrent.{ExecutionContext, Future}
 

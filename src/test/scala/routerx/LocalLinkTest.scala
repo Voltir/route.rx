@@ -1,4 +1,4 @@
-package locallink
+package routerx
 
 import utest._
 import org.scalajs.dom

@@ -1,6 +1,6 @@
-Local Link
-==========
-Macro magic to make "reactive" urls.
+Route.rx
+========
+Macro magic for a "reactive" urls / browser history.
 
 ```scala    
 //Define the set of "Screens" the app has
@@ -10,7 +10,7 @@ case object AboutScreen extends Screen
 case object UsersScreen extends Screen
 case class ProfileScreen(user: User) extends Screen
 
-object Demo extends js.JSApp {
+object Demo extends js.JSApp with routerx.implicits.Defaults {
 
   //Macro Magic
   val router = Router.generate[Screen](IndexScreen)
@@ -41,10 +41,10 @@ Getting Started
 
 
 ```scala
-"com.stabletechs" %%% "local-link" % "1.0.0"
+"com.stabletechs" %%% "routerx" % "1.1.1"
 ```
 
-local-link is currently only compiled for Scala.js 0.6+
+Route.rx is currently only compiled for Scala.js 0.6+
 
 Quick Demo
 ==========
@@ -124,7 +124,7 @@ Often, these case classes will have something like a UserId, in the case of a Us
   }
 ```
 
-With this implicit in scope, any "Screen" trait can take as a parameter a User object and have it mapped appropriately. Note that normally LocalLink uses upickle to cache the screen object directly in the Browser using the history API, which means that fromParts is pretty much only called in the event of a page load as described above. This means the for rapid prototyping it is often very convenient to skip fromParts:
+With this implicit in scope, any "Screen" trait can take as a parameter a User object and have it mapped appropriately. Note that normally Route.rx uses upickle to cache the screen object directly in the Browser using the history API, which means that fromParts is pretty much only called in the event of a page load as described above. This means the for rapid prototyping it is often very convenient to skip fromParts:
 ```scala
   implicit val UserUrlPart = new UrlPart[User] {
     override val size = 1

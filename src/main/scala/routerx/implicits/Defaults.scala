@@ -1,4 +1,4 @@
-package locallink.implicits
+package routerx.implicits
 
 trait Defaults
   extends PrimitiveTypes

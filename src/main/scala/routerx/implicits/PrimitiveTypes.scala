@@ -1,6 +1,6 @@
-package locallink.implicits
+package routerx.implicits
 
-import locallink.UrlPart
+import routerx.UrlPart
 
 trait PrimitiveTypes {
   import scala.concurrent.{ExecutionContext,Future}

@@ -1,7 +1,7 @@
-package locallink.internal
+package routerx.internal
 
 import upickle.default._
-import locallink.{VolatileLink, RouteTable, Router,fragment}
+import routerx.{VolatileLink, RouteTable, Router,fragment}
 import scala.language.experimental.macros
 import scala.reflect.macros._
 

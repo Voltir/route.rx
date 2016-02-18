@@ -1,7 +1,7 @@
 import scala.concurrent.{Future, ExecutionContext}
 import scala.annotation.StaticAnnotation
 
-package object locallink {
+package object routerx {
   /**
    * UrlPart defines how to take arbitrary screen parameters and represent them as part of the generated URL.
    * The basic idea is that enough information will be stored in the url, such as an object id,

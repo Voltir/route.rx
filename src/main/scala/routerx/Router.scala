@@ -1,4 +1,4 @@
-package locallink
+package routerx
 
 import upickle.default._
 import org.scalajs.dom
@@ -55,7 +55,7 @@ class Router[Link](default: Link, table: RouteTable[Link], prefix: Option[String
 }
 
 object Router {
-  import locallink.internal._
+  import routerx.internal._
   def generate[Link](default: Link)(implicit R: Reader[Link], w: Writer[Link]): Router[Link] =
     macro Macros.generateRouter[Link]
 
