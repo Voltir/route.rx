@@ -14,7 +14,7 @@ licenses += ("MIT License", url("http://www.opensource.org/licenses/mit-license.
 
 libraryDependencies += "com.stabletechs" %%% "likelib" % "0.1.1"
 libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "0.9.0"
-libraryDependencies += "com.lihaoyi" %%% "scalarx" % "0.3.1-SNAPSHOT"
+libraryDependencies += "com.lihaoyi" %%% "scalarx" % "0.3.1"
 libraryDependencies += "com.lihaoyi" %%% "upickle" % "0.3.7"
 libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value 
 
@@ -50,7 +50,7 @@ publishTo := {
 
 sonatypeProfileName := "com.stabletechs"
 
-pomExtra := (
+pomExtra :=
   <developers>
     <developer>
       <id>Voltaire</id>
@@ -58,6 +58,5 @@ pomExtra := (
       <url>https://github.com/voltir/</url>
     </developer>
   </developers>
-)
 
 pomIncludeRepository := { _ => false }
