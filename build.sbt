@@ -1,6 +1,6 @@
 enablePlugins(ScalaJSPlugin)
 
-name := "route.rx"
+name := "routerx"
 
 organization := "com.stabletechs"
 
