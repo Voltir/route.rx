@@ -17,7 +17,7 @@ object Demo extends js.JSApp with routerx.implicits.Defaults {
 
   //and router is now bound to the browser history api :)
 
-  private lazy val current: Rx[HtmlTag] = Rx {
+  private lazy val current: Rx[Frag] = Rx {
     router.current() match {
       case IndexScreen => screens.Index.screen()
       case AboutScreen => screens.About.screen()
