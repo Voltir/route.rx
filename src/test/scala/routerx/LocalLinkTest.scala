@@ -44,8 +44,8 @@ object LocalLinkTest extends TestSuite with implicits.Defaults {
   @fragment("profile") case object AccountProfileScreen extends AccountScreen
 
   sealed abstract class AdminScreen(uid: UserId) extends Screen
-  @fragment("profile") case class AdminProfile(uid: UserId) extends AdminScreen(uid)
-  case class AdminDetails(user: FakeUser) extends AdminScreen(user.uid)
+  @fragment("profile") case class AdminProfileScreen(uid: UserId) extends AdminScreen(uid)
+  case class AdminDetailsScreen(user: FakeUser) extends AdminScreen(user.uid)
 
   implicit val FakeUserUrlParts = new UrlPart[FakeUser] {
     override val size = 1
@@ -132,6 +132,7 @@ object LocalLinkTest extends TestSuite with implicits.Defaults {
       * - routes.parseUrl("/user/profile").map { s => assertMatch(s){case UserProfileScreen => }}
       * - routes.parseUrl("/account/profile").map { s => assertMatch(s){case AccountProfileScreen => }}
       * - routes.parseUrl("/test-like/555").map { s => assertMatch(s){case TestLikeScreen(UserId(555)) => }}
+      * - routes.parseUrl("/admin/admin-details/555").map { s => assertMatch(s){case AdminDetailsScreen(FakeUser(UserId(555),_)) => }}
     }
 
     'traitAsPrefixTest {

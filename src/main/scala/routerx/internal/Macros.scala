@@ -55,7 +55,7 @@ object Macros {
     if(toParts.nonEmpty) {
       cq"""$term: ${sym.asType} =>
         val allParts = List(..$toParts).flatten
-        ${prefixForSym(c)(rootPart, sym.asClass)} + "/QQ" + allParts.mkString("/")
+        ${prefixForSym(c)(rootPart, sym.asClass)} + "/" + allParts.mkString("/")
       """ //"""
     } else {
       cq"""$term: ${sym.asType} =>
@@ -103,7 +103,7 @@ object Macros {
       }
       else if(isSealedAbstract) {
         val wurt = c.Expr[String](q""""TODO"""")
-        cq"e: ${sym.asType} => $wurt"
+        cq"e: ${sym.asType} => { println($wurt) ; $wurt }"
       }
       else {
         c.abort(c.enclosingPosition, "Unknown Subclass Type!: " + sym)
@@ -116,10 +116,25 @@ object Macros {
 
     val linkTpe = weakTypeTag[Link].tpe
 
+    def sealedLikeSubtable(innerUrlMap: Set[Tree]): Tree = {
+      val subtable = q"""{ case ((remaining:String),(ec:ExecutionContext)) =>
+          val unurl: Map[String, (String,ExecutionContext) => Future[$linkTpe]] = Map(..$innerUrlMap)
+          unurl
+            .toList
+            .sortBy(_._1)(implicitly[Ordering[String]].reverse)
+            .find(part => remaining.startsWith(part._1))
+            .map
+          { case (matched,builder) =>
+            builder(remaining.drop(matched.size),ec)
+          }.get
+        }"""
+      subtable
+    }
+
     baseScreenTrait.knownDirectSubclasses.map { sym =>
 
       if(!sym.fullName.endsWith("Screen")) {
-        c.abort(c.enclosingPosition,"All link types must end in Screen")
+        c.abort(c.enclosingPosition,s"All link types must end in Screen: $sym")
       }
 
       val isCaseObject = sym.asClass.isCaseClass && sym.asClass.isModuleClass
@@ -136,26 +151,17 @@ object Macros {
       else if(isSealedTrait) {
         val prefix = urlRoot(c)(rootPart,sym.fullName)
         val omg = generateUrlToLinks(c)("",sym.asClass)
-        val subtable = q"""{ case ((remaining:String),(ec:ExecutionContext)) =>
-          val unurl: Map[String, (String,ExecutionContext) => Future[$linkTpe]] = Map(..$omg)
-          val asurl = "/"+remaining
-          unurl
-            .toList
-            .sortBy(_._1)(implicitly[Ordering[String]].reverse)
-            .find(part => asurl.startsWith(part._1))
-            .map
-          { case (matched,builder) =>
-            builder(asurl.drop(matched.size),ec)
-          }.get
-        }"""
+        val subtable = sealedLikeSubtable(omg)
         q"""$prefix  -> $subtable"""
       }
 
       else if(isSealedAbstract) {
         println("LETS DO THIS!")
         val prefix = urlRoot(c)(rootPart,sym.fullName)
+        val omg = generateUrlToLinks(c)("",sym.asClass)
+        val subtable = sealedLikeSubtable(omg)
         println("PREFIX IS " + prefix)
-        q"""$prefix -> null"""
+        q"""$prefix -> $subtable"""
       }
 
       else if(isCaseClass) {
@@ -212,6 +218,8 @@ object Macros {
     val clsSymbol = linkTpe.typeSymbol.asClass
     val linkToUrl = generateLinksToUrl(c)("",clsSymbol)
     val urlToLink = generateUrlToLinks[Link](c)(urlRoot(c)("",clsSymbol.fullName),clsSymbol)
+    println("############# LINKS ###########")
+    println(urlToLink)
     val volatileLinks = generateVolatileLinks(c)(clsSymbol)
 
     c.Expr[RouteTable[Link]](q"""
