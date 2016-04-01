@@ -43,6 +43,10 @@ object LocalLinkTest extends TestSuite with implicits.Defaults {
   sealed trait AccountScreen extends Screen
   @fragment("profile") case object AccountProfileScreen extends AccountScreen
 
+  sealed abstract class AdminScreen(uid: UserId) extends Screen
+  @fragment("profile") case class AdminProfile(uid: UserId) extends AdminScreen(uid)
+  case class AdminDetails(user: FakeUser) extends AdminScreen(user.uid)
+
   implicit val FakeUserUrlParts = new UrlPart[FakeUser] {
     override val size = 1
 

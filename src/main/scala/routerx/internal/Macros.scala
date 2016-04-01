@@ -24,7 +24,7 @@ object Macros {
         }
       }
     }
-    val result = rootPart + fragmentOverride.getOrElse {
+    val result = rootPart + "/" + fragmentOverride.getOrElse {
       val fullNamePart = sym.fullName.drop(sym.fullName.lastIndexOf('.') + 1).dropRight("Screen".size)
       val nameFragments = fullNamePart.foldLeft(List.empty[String]) { case (acc,char) =>
         acc match {
@@ -34,37 +34,54 @@ object Macros {
       }
       nameFragments.reverse.mkString("-")
     }
+    require(result.startsWith("/") && result.length > 1, s"Invalid prefix created! $result")
+    require(!result.endsWith("/"),s"Invalid prefix ended in '/' $result!")
     result
   }
 
   private def urlForCaseObject(c: blackbox.Context)(rootPart: String, sym: c.universe.Symbol): c.Tree = {
     import c.universe._
+    require(rootPart != "/","Sanity check..")
     cq"e: ${sym.asType} => ${prefixForSym(c)(rootPart, sym.asClass)}"
   }
 
   private def urlForCaseClass(c: blackbox.Context)(rootPart: String, sym: c.universe.Symbol): c.Tree = {
     import c.universe._
     val term = TermName("e")
+    require(rootPart != "/","(2) Sanity check..")
     val toParts = sym.asType.info.decls.filter(_.asTerm.isAccessor).map { acc =>
       q"implicitly[UrlPart[${acc.asTerm}]].toParts($term.$acc)"
+    }.toList
+    if(toParts.nonEmpty) {
+      cq"""$term: ${sym.asType} =>
+        val allParts = List(..$toParts).flatten
+        ${prefixForSym(c)(rootPart, sym.asClass)} + "/QQ" + allParts.mkString("/")
+      """ //"""
+    } else {
+      cq"""$term: ${sym.asType} =>
+        ${prefixForSym(c)(rootPart, sym.asClass)}
+      """ //"""
     }
-    cq"""$term: ${sym.asType} => {
-      val allParts = List(..$toParts).flatten
-      ${prefixForSym(c)(rootPart, sym.asClass)} + "/" + allParts.mkString("/")
-    }""" //"""
   }
 
   private def urlRoot(c: blackbox.Context)(urlPrefix: String, baseScreenTraitFullName: String): String = {
+    require(urlPrefix.startsWith("/") || urlPrefix.isEmpty, s"($baseScreenTraitFullName) $urlPrefix must start with '/'!")
+    require(!urlPrefix.endsWith("/"),s"($baseScreenTraitFullName) $urlPrefix must not with '/'!")
+
     val rootSymbolName = baseScreenTraitFullName.split('.').toList.lastOption.getOrElse("Screen")
     if(!rootSymbolName.endsWith("Screen")) {
       c.abort(c.enclosingPosition,"Route traits and objects must end in 'Screen'")
     }
+
     val nameSize = rootSymbolName.length - "Screen".length
-    s"${urlPrefix}${if(nameSize > 0) rootSymbolName.take(nameSize).toLowerCase+"/" else ""}"
+
+    s"$urlPrefix${if(nameSize > 0) "/" + rootSymbolName.take(nameSize).toLowerCase else ""}"
   }
 
   private def generateLinksToUrl(c: blackbox.Context)(urlPrefix: String, baseScreenTrait: c.universe.ClassSymbol): Set[c.universe.Tree] = {
     import c.universe._
+    require(urlPrefix.startsWith("/") || urlPrefix.isEmpty, s"($baseScreenTrait) $urlPrefix must start with '/'!")
+    require(!urlPrefix.endsWith("/"),s"($baseScreenTrait) $urlPrefix must not with '/'!")
 
     if(baseScreenTrait.knownDirectSubclasses.isEmpty) {
       c.abort(c.enclosingPosition, "Error with knownDirectSubclasses (SI-7046)")
@@ -73,16 +90,23 @@ object Macros {
     val rootPart = urlRoot(c)(urlPrefix,baseScreenTrait.fullName)
 
     baseScreenTrait.knownDirectSubclasses.map { sym =>
+
       val isCaseObject = sym.asClass.isCaseClass && sym.asClass.isModuleClass
       val isCaseClass = sym.asClass.isCaseClass && !sym.asClass.isModuleClass
       val isSealedTrait = sym.asClass.isTrait && sym.asClass.isSealed
+      val isSealedAbstract = sym.asClass.isAbstract && sym.asClass.isSealed && !sym.asClass.isTrait
+
       if (isCaseObject) urlForCaseObject(c)(rootPart, sym)
       else if (isCaseClass) urlForCaseClass(c)(rootPart, sym)
       else if (isSealedTrait)  {
         cq"e: ${sym.asType} => e match { case ..${generateLinksToUrl(c)(rootPart,sym.asClass)} }"
       }
+      else if(isSealedAbstract) {
+        val wurt = c.Expr[String](q""""TODO"""")
+        cq"e: ${sym.asType} => $wurt"
+      }
       else {
-        c.abort(c.enclosingPosition, "Unknown Subclass Type!")
+        c.abort(c.enclosingPosition, "Unknown Subclass Type!: " + sym)
       }
     }
   }
@@ -101,6 +125,7 @@ object Macros {
       val isCaseObject = sym.asClass.isCaseClass && sym.asClass.isModuleClass
       val isCaseClass = sym.asClass.isCaseClass && !sym.asClass.isModuleClass
       val isSealedTrait = sym.asClass.isTrait && sym.asClass.isSealed
+      val isSealedAbstract = sym.asClass.isAbstract && sym.asClass.isSealed && !sym.asClass.isTrait
 
       if(isCaseObject) {
         val url = prefixForSym(c)(rootPart, sym.asClass)
@@ -110,7 +135,7 @@ object Macros {
 
       else if(isSealedTrait) {
         val prefix = urlRoot(c)(rootPart,sym.fullName)
-        val omg = generateUrlToLinks(c)("/",sym.asClass)
+        val omg = generateUrlToLinks(c)("",sym.asClass)
         val subtable = q"""{ case ((remaining:String),(ec:ExecutionContext)) =>
           val unurl: Map[String, (String,ExecutionContext) => Future[$linkTpe]] = Map(..$omg)
           val asurl = "/"+remaining
@@ -124,6 +149,13 @@ object Macros {
           }.get
         }"""
         q"""$prefix  -> $subtable"""
+      }
+
+      else if(isSealedAbstract) {
+        println("LETS DO THIS!")
+        val prefix = urlRoot(c)(rootPart,sym.fullName)
+        println("PREFIX IS " + prefix)
+        q"""$prefix -> null"""
       }
 
       else if(isCaseClass) {
@@ -178,8 +210,8 @@ object Macros {
       c.abort(c.enclosingPosition, "Routes may only use a sealed trait")
     }
     val clsSymbol = linkTpe.typeSymbol.asClass
-    val linkToUrl = generateLinksToUrl(c)("/",clsSymbol)
-    val urlToLink = generateUrlToLinks[Link](c)(urlRoot(c)("/",clsSymbol.fullName),clsSymbol)
+    val linkToUrl = generateLinksToUrl(c)("",clsSymbol)
+    val urlToLink = generateUrlToLinks[Link](c)(urlRoot(c)("",clsSymbol.fullName),clsSymbol)
     val volatileLinks = generateVolatileLinks(c)(clsSymbol)
 
     c.Expr[RouteTable[Link]](q"""
