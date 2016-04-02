@@ -111,6 +111,57 @@ object Macros {
     }
   }
 
+  private def extractAccessorParts(c: blackbox.Context)(rootPart: String, sym: c.universe.Symbol) = {
+    import c.universe._
+    val url = prefixForSym(c)(rootPart, sym.asClass)
+    val companion = getCompanion(c)(sym.asType.toType)
+    val unusedParts = TermName("unusedParts")
+    val accessors = sym.asType.info.decls.filter(_.asTerm.isParamAccessor)
+    println("Wat: " + sym)
+    println(sym.asClass.info.decls.filter(t => t.isTerm).map(_.asTerm.isAccessor))
+    println(sym.asClass.info.decls.filter(t => t.isTerm).map(_.asTerm.isMethod))
+    println(sym.asClass.info.decls.filter(t => t.isTerm).map(_.asTerm.isParameter))
+    println(sym.asClass.info.decls.filter(t => t.isTerm).map(_.asTerm.isConstructor))
+    println(sym.asClass.info.decls.filter(t => t.isTerm).map(_.asTerm.isGetter))
+    println(sym.asClass.info.decls.filter(t => t.isTerm).map(_.asTerm.isAbstract))
+    println(sym.asClass.info.decls.filter(t => t.isTerm).map(_.asTerm.isByNameParam))
+    println(sym.asClass.info.decls.filter(t => t.isTerm).map(_.asTerm.isClass))
+    println(sym.asClass.info.decls.filter(t => t.isTerm).map(_.asTerm.isCaseAccessor))
+    println(sym.asClass.info.decls.filter(t => t.isTerm).map(_.asTerm.isParamAccessor))
+    println(sym.asClass.info.decls.filter(t => t.isTerm).map(_.asTerm.isOverloaded))
+    println(sym.asClass.info.decls.filter(t => t.isTerm).map(_.asTerm.isAbstractOverride))
+    println(sym.asClass.info.decls.map(a => showRaw(a)))
+    println("GOT: " + accessors.mkString("\n"))
+    accessors.map { acc =>
+      val imp = q"implicitly[UrlPart[${acc.asTerm}]]"
+      q"val ${TermName(acc.name.toString+"$")} = $imp"
+    }
+  }
+
+  private def generateCaseClassUrlLinks(c: blackbox.Context)(rootPart: String, sym: c.universe.Symbol): c.universe.Tree = {
+    import c.universe._
+    val url = prefixForSym(c)(rootPart, sym.asClass)
+    val companion = getCompanion(c)(sym.asType.toType)
+    val unusedParts = TermName("unusedParts")
+    val accessors = sym.asType.info.decls.filter(_.asTerm.isAccessor)
+    val elemPartials = accessors.zipWithIndex.map { case (acc,idx) =>
+      val accTerm = TermName(s"acc$idx")
+      val imp = q"implicitly[UrlPart[${acc.asTerm}]]"
+      fq"""$accTerm <- {
+              val partial = $imp
+              val r = partial.fromParts($unusedParts.take(partial.size))
+              $unusedParts = $unusedParts.drop(partial.size)
+              r
+          }""" //"""
+    }
+    val accessorsTerms = (0 until accessors.size).map { idx => TermName(s"acc$idx") }
+    val builder = q"""{ case ((remaining:String),(ec:ExecutionContext)) =>
+          var $unusedParts = remaining.split('/').toList.drop(1)
+          for (..$elemPartials) yield { $companion.apply(..$accessorsTerms) }
+        }"""
+    q"$url -> $builder"
+  }
+
   private def generateUrlToLinks[Link: c.WeakTypeTag](c: blackbox.Context)(rootPart: String, baseScreenTrait: c.universe.ClassSymbol): Set[c.universe.Tree] = {
     import c.universe._
 
@@ -158,33 +209,42 @@ object Macros {
       else if(isSealedAbstract) {
         println("LETS DO THIS!")
         val prefix = urlRoot(c)(rootPart,sym.fullName)
+        val lolz = extractAccessorParts(c)(rootPart,sym)
         val omg = generateUrlToLinks(c)("",sym.asClass)
         val subtable = sealedLikeSubtable(omg)
         println("PREFIX IS " + prefix)
-        q"""$prefix -> $subtable"""
+        val todo =
+          q"""$prefix -> {
+              ..$lolz
+             $subtable
+          }"""
+        println("########################")
+        println(todo)
+        todo
       }
 
       else if(isCaseClass) {
-        val url = prefixForSym(c)(rootPart, sym.asClass)
-        val companion = getCompanion(c)(sym.asType.toType)
-        val unusedParts = TermName("unusedParts")
-        val accessors = sym.asType.info.decls.filter(_.asTerm.isAccessor)
-        val elemPartials = accessors.zipWithIndex.map { case (acc,idx) =>
-          val accTerm = TermName(s"acc$idx")
-          val thing = q"implicitly[UrlPart[${acc.asTerm}]]"
-          fq"""$accTerm <- {
-              val partial = $thing
-              val r = partial.fromParts($unusedParts.take(partial.size))
-              $unusedParts = $unusedParts.drop(partial.size)
-              r
-          }""" //"""
-        }
-        val accessorsTerms = (0 until accessors.size).map { idx => TermName(s"acc$idx") }
-        val builder = q"""{ case ((remaining:String),(ec:ExecutionContext)) =>
-          var $unusedParts = remaining.split('/').toList.drop(1)
-          for (..$elemPartials) yield { $companion.apply(..$accessorsTerms) }
-        }"""
-        q"$url -> $builder"
+//        val url = prefixForSym(c)(rootPart, sym.asClass)
+//        val companion = getCompanion(c)(sym.asType.toType)
+//        val unusedParts = TermName("unusedParts")
+//        val accessors = sym.asType.info.decls.filter(_.asTerm.isAccessor)
+//        val elemPartials = accessors.zipWithIndex.map { case (acc,idx) =>
+//          val accTerm = TermName(s"acc$idx")
+//          val imp = q"implicitly[UrlPart[${acc.asTerm}]]"
+//          fq"""$accTerm <- {
+//              val partial = $imp
+//              val r = partial.fromParts($unusedParts.take(partial.size))
+//              $unusedParts = $unusedParts.drop(partial.size)
+//              r
+//          }""" //"""
+//        }
+//        val accessorsTerms = (0 until accessors.size).map { idx => TermName(s"acc$idx") }
+//        val builder = q"""{ case ((remaining:String),(ec:ExecutionContext)) =>
+//          var $unusedParts = remaining.split('/').toList.drop(1)
+//          for (..$elemPartials) yield { $companion.apply(..$accessorsTerms) }
+//        }"""
+//        q"$url -> $builder"
+        generateCaseClassUrlLinks(c)(rootPart,sym)
       }
 
       else {
@@ -218,8 +278,6 @@ object Macros {
     val clsSymbol = linkTpe.typeSymbol.asClass
     val linkToUrl = generateLinksToUrl(c)("",clsSymbol)
     val urlToLink = generateUrlToLinks[Link](c)(urlRoot(c)("",clsSymbol.fullName),clsSymbol)
-    println("############# LINKS ###########")
-    println(urlToLink)
     val volatileLinks = generateVolatileLinks(c)(clsSymbol)
 
     c.Expr[RouteTable[Link]](q"""

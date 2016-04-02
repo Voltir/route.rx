@@ -132,7 +132,7 @@ object LocalLinkTest extends TestSuite with implicits.Defaults {
       * - routes.parseUrl("/user/profile").map { s => assertMatch(s){case UserProfileScreen => }}
       * - routes.parseUrl("/account/profile").map { s => assertMatch(s){case AccountProfileScreen => }}
       * - routes.parseUrl("/test-like/555").map { s => assertMatch(s){case TestLikeScreen(UserId(555)) => }}
-      * - routes.parseUrl("/admin/admin-details/555").map { s => assertMatch(s){case AdminDetailsScreen(FakeUser(UserId(555),_)) => }}
+      * - routes.parseUrl("/admin/555/admin-details").map { s => assertMatch(s){case AdminDetailsScreen(FakeUser(UserId(555),_)) => }}
     }
 
     'traitAsPrefixTest {
