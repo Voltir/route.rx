@@ -11,7 +11,7 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.language.experimental.macros
 import internal._
 
-class Router[Link](default: Link, table: RouteTable[Link], prefix: Option[String] = None)(implicit R: Reader[Link], w: Writer[Link]) {
+class Router[Link](default: Link, val table: RouteTable[Link], prefix: Option[String] = None)(implicit R: Reader[Link], w: Writer[Link]) {
 
   private val urlPrefix = prefix.map(p => if(p.startsWith("/")) p else "/" + p).getOrElse("")
 

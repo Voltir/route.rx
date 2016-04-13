@@ -202,8 +202,8 @@ object Macros {
             .find(part => url.startsWith(part._1)).map
           { case (matched,builder) =>
             val remaining = url.drop(matched.size)
-            builder(remaining,ec).recover { case err  => onError }
-          }.getOrElse(Future(onError))
+            builder(remaining,ec).recover { case err  => println(err); onError }
+          }.getOrElse { println("Not found: " + url); Future(onError) }
         }
       }
     """)
