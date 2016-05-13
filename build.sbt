@@ -4,18 +4,18 @@ name := "routerx"
 
 organization := "com.stabletechs"
 
-version := "1.1.2-SNAPSHOT"
+version := "1.1.2"
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.11.8"
 
 homepage := Some(url("http://stabletechs.com/"))
 
 licenses += ("MIT License", url("http://www.opensource.org/licenses/mit-license.php"))
 
-libraryDependencies += "com.stabletechs" %%% "likelib" % "0.1.1"
+libraryDependencies += "com.stabletechs" %%% "likelib" % "0.1.2"
 libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "0.9.0"
 libraryDependencies += "com.lihaoyi" %%% "scalarx" % "0.3.1"
-libraryDependencies += "com.lihaoyi" %%% "upickle" % "0.3.10-SNAPSHOT"
+libraryDependencies += "com.lihaoyi" %%% "upickle" % "0.4.0"
 libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value 
 
 jsDependencies += RuntimeDOM
