@@ -6,7 +6,7 @@ import org.scalajs.dom
 import scala.concurrent.{ExecutionContext, Future}
 
 object LocalLinkTest extends TestSuite with implicits.Defaults {
-  import utest.ExecutionContext.RunNow
+  import utest.framework.ExecutionContext.RunNow
 
   case class UserId(value: Long) extends AnyVal
   object UserId {
