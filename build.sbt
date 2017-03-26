@@ -4,18 +4,20 @@ name := "routerx"
 
 organization := "com.stabletechs"
 
-version := "1.1.2"
+version := "1.1.3-SNAPSHOT"
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.1"
+
+crossScalaVersions := Seq("2.11.8", "2.12.1")
 
 homepage := Some(url("http://stabletechs.com/"))
 
 licenses += ("MIT License", url("http://www.opensource.org/licenses/mit-license.php"))
 
-libraryDependencies += "com.stabletechs" %%% "likelib" % "0.1.2"
-libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "0.9.0"
-libraryDependencies += "com.lihaoyi" %%% "scalarx" % "0.3.1"
-libraryDependencies += "com.lihaoyi" %%% "upickle" % "0.4.0"
+libraryDependencies += "com.stabletechs" %%% "likelib" % "0.1.3-SNAPSHOT"
+libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "0.9.1"
+libraryDependencies += "com.lihaoyi" %%% "scalarx" % "0.3.2"
+libraryDependencies += "com.lihaoyi" %%% "upickle" % "0.4.4"
 libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value 
 
 jsDependencies += RuntimeDOM
@@ -23,7 +25,7 @@ jsDependencies += RuntimeDOM
 skip in packageJSDependencies := false
 
 // uTest settings
-libraryDependencies += "com.lihaoyi" %%% "utest" % "0.3.1"
+libraryDependencies += "com.lihaoyi" %%% "utest" % "0.4.5"
 testFrameworks += new TestFramework("utest.runner.Framework")
 
 persistLauncher in Compile := true
